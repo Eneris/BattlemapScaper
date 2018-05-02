@@ -5,4 +5,4 @@ module.exports = new TelegramBot(
   config.telegramToken, {
     polling: true
   }
-);
+)

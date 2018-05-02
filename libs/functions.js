@@ -1,2 +1,2 @@
 
-exports.delay = (timeToWait) => new Promise((res) => setTimeout(res, timeToWait))
+exports.delay = (timeToWait) => new Promise((resolve) => setTimeout(resolve, timeToWait))
