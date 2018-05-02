@@ -1,7 +1,9 @@
 {
   "name": "battlemap-scraper",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "Delta T - Battlemap scraper",
+  "repository": "github:Eneris/BattlemapScaper",
+  "license": "Beerware",
   "engines": {
     "node": ">=8.0.0"
   },
