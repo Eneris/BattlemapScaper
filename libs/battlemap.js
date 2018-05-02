@@ -30,7 +30,11 @@ module.exports = class Battlemap {
       '--ignore-ssl-errors=true'
     ])
 
-    this.page = await this.login(this.instance, this.credentials)
+    this.page = await this.instance.createPage()
+
+    await this.page.property('viewportSize', {width: 1920, height: 1080})
+
+    await this.login(credentials)
 
     console.log('Init done')
 
@@ -41,11 +45,7 @@ module.exports = class Battlemap {
     return this.instance.exit()
   }
 
-  async login() {
-    const page = await this.instance.createPage()
-
-    await this.page.property('viewportSize', {width: 1920, height: 1080})
-
+  async login(credentials) {
     if (debug) {
       console.log('Login started')
 
@@ -70,8 +70,8 @@ module.exports = class Battlemap {
       throw new Error('Failed to load page ' + loginPage)
     }
 
-    if (await this.isLoginNeeded(page)) {
-      await this.googleLogin(page, credentials)
+    if (await this.isLoginNeeded()) {
+      await this.googleLogin(credentials)
     }
 
     await delay(2000)
@@ -80,10 +80,10 @@ module.exports = class Battlemap {
       await this.page.render('../.debug/loginHard.png')
     }
 
-    return page
+    return true
   }
 
-  async googleLogin(page, credentials) {
+  async googleLogin(credentials) {
     if (debug) {
       console.log('Hard login started')
       await this.page.render('../.debug/LoginStageEmail.png')
@@ -119,10 +119,10 @@ module.exports = class Battlemap {
       await this.page.render('../.debug/LoginStageLoad.png')
     }
 
-    return page
+    return true
   }
 
-  async isLoginNeeded(page) {
+  async isLoginNeeded() {
     if (debug) {
       await this.page.render('../.debug/isLoginNeeded.png')
     }
