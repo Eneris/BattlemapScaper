@@ -13,73 +13,58 @@
 
   await bm.init(credentials)
 
-  app.get('/getBase/:baseId', async (req, res) => {
-    let id = req.params.baseId
+  const checkIdParam = (req, res, next) => {
+    const id = req.params.id
+    console.log(id)
+    
+    if (String(id).match(/[a-zA-Z]/)) {
+      bm.getIdFromQuery(id)
+        .then(id => (req.queryDataId = id))
+        .then(() => next())
+        .catch(err => res.status(err.code || 400).json({error: err.message}))
+    } else {
+      req.queryDataId = id
+      next()
+    }
+  }
+
+  app.get('/getBase/:id', checkIdParam, async (req, res) => {
+    let id = req.queryDataId
 
     if (debug) console.log('REQUEST: getBase', id)
 
     try {
-      if (String(id).match(/[a-zA-Z]/)) {
-        id = await bm.getIdFromQuery(id)
-      }
-
-      if (!id) throw new Error('Wrong base id')
-
       const data = await bm.getApiData('/base-profile', {id})
-
-      if (!data) throw new Error('No data returned')
-
       dataRef.child('bases').child(id).set(data)
-
       res.json(data)
     } catch (err) {
       return res.status(err.code || 500).json({error: err.message})
     }
   })
 
-  app.get('/getCluster/:baseId/:type?', async (req, res) => {
-    let id = req.params.baseId
+  app.get('/getCluster/:id/:type?', checkIdParam, async (req, res) => {
+    let id = req.queryDataId
     const type = req.params.type || 'simulation'
 
     if (debug) console.log('REQUEST: getCluster', id, type)
 
     try {
-      if (String(id).match(/[a-zA-Z]/)) {
-        id = await bm.getIdFromQuery(id)
-      }
-
-      if (!id) throw new Error('Wrong base id')
-
       const data = await bm.getApiData('/base-cluster-data', {id, type})
-
-      if (!data) throw new Error('No data returned')
-
       dataRef.child('clusters').child(id).set(data)
-
       res.json(data)
     } catch (err) {
       return res.status(err.code || 500).json({error: err.message})
     }
   })
 
-  app.get('/getBattle/:id', async (req, res) => {
-    let id = req.params.id
+  app.get('/getBattle/:id', checkIdParam, async (req, res) => {
+    let id = req.queryDataId
 
     if (debug) console.log('REQUEST: getCluster', id)
 
     try {
-      if (String(id).match(/[a-zA-Z]/)) {
-        id = await bm.getIdFromQuery(id)
-      }
-
-      if (!id) throw new Error('Wrong battle id')
-
-      const data = await bm.getBattleDetails(id)
-
-      if (!data) throw new Error('No data returned')
-
+      const data = await bm.getApiData('/get-battle-details', {battleID: id})
       dataRef.child('battleDetails').child(id).set(data)
-
       res.json(data)
     } catch (err) {
       return res.status(err.code || 500).json({error: err.message})
@@ -88,7 +73,7 @@
 
   app.get('/getBattles', (req, res) => {
     if (debug) console.log('REQUEST: getBattles')
-    return bm.getBattleList()
+    return bm.getApiData('/get-battles')
       .then(data => {
         dataRef.child('battles').set(data)
         return res.json(data)

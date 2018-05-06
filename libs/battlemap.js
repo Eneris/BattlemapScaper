@@ -144,54 +144,79 @@ module.exports = class Battlemap {
     return this.page.evaluate(functionToCall, ...params)
   }
 
-  async getApiData(queryEndpoint, requestData, method = 'post') {
-    const data = await this.page.evaluate(function(queryEndpoint, customRequestData, method) {
-      return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
+  async getApiData(queryEndpoint, requestData = {}, method = 'post') {
+    return this.page.evaluate(function(queryEndpoint, customRequestData, method) {
+      // This one has silenced error
+      // return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
+
+      /* global $ */
+      return new Promise(function(resolve, reject) {
+        $.ajax({
+          type: method,
+          url: queryEndpoint,
+          data: customRequestData,
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          },
+          async: !1,
+          success: resolve,
+          error: reject
+        })
+      })
     }, queryEndpoint, requestData, method)
+      .then(data => {
+        if (typeof data === 'string') {
+          try {
+            return JSON.parse(data)
+          } catch (err) {
+            console.log('Failed to parse JSON string', data)
+            console.error(err)
+          }
+        } else if (typeof data === 'object' && typeof data.message === 'string' && data.message === '') {
+          // Second Unauthorized error check here - DeltaT server is too unpredictable
+          throw new Error('Login probably expired')
+        } else if (data.st === 0) {
+          throw new Error('Server returned negative status from some reason')
+        }
 
-    if (typeof data === 'string') {
-      try {
-        return JSON.parse(data)
-      } catch (err) {
-        console.log('Failed to parse JSON string', data)
-        console.error(err)
-      }
-    }
+        return data._result
+      })
+      .catch(err => {
+        let error
+        // Here is at least some error handler
+        if (err.status >= 400 && err.status <= 499) {
+          error = new Error('Unauthorized')
+          error.code = 500
+        } else if (err.status === 500) {
+          error = new Error('DeltaT server is down')
+          error.code = 500
+        } else {
+          error = new Error(err.message)
+          error.code = err.status
+        }
 
-    return data
-  }
-
-  // Predefined queries
-  async getBattleList() {
-    const battles = await this.page.evaluate(function() {
-      return window.battleLogAPIController.getBattles() || []
-    })
-
-    return battles
-  }
-
-  async getBattleDetails(battleID) {
-    if (debug) console.log('Getting battle details for', battleID)
-    const battle = await this.page.evaluate(function(battleID) {
-      return window.battleLogAPIController.getBattleDetails({battleID: battleID})
-    }, battleID)
-
-    return battle
-  }
-
-  async getSearchQuery(queryString, faction = 0) {
-    return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
+        throw error
+      })
   }
 
   async render(fileName, options = {}) {
     return this.page.render(fileName, options)
   }
 
+  async getSearchQuery(queryString, faction = 0) {
+    return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
+  }
+
+  // Predefined queries
   async getIdFromQuery(queryName) {
     const searchData = await this.getSearchQuery(queryName)
 
+    if (typeof searchData === 'object' && typeof searchData.message === 'string' && searchData.message === '') {
+      throw new Error('Login probably expired')
+    }
+
     if (!searchData.length) {
-      throw new Error('Base ' + queryName + ' not found')
+      throw new Error(queryName + ' not found')
     }
 
     return searchData.pop().id
