@@ -1,5 +1,3 @@
-
-
 module.exports = {
   debug: 'info',
   homePage: 'https://battlemap.deltatgame.com/#home',
