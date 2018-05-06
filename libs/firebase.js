@@ -1,5 +1,5 @@
-import Firebase from 'firebase'
-import config from '../config'
+const Firebase = require('firebase-admin')
+const config = require('../config')
 
 if (!Firebase.apps.length) {
   Firebase.initializeApp({
@@ -12,4 +12,4 @@ if (!Firebase.apps.length) {
   })
 }
 
-export default Firebase
+module.exports = Firebase

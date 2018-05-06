@@ -4,8 +4,12 @@
   const app = express()
   const { credentials, expressPort, debug } = require('../config')
   const Battlemap = require('../libs/battlemap')
+  const Firebase = require('../libs/firebase')
+
+  const database = Firebase.database()
 
   const bm = new Battlemap()
+  const dataRef = database.ref('/data')
 
   await bm.init(credentials)
 
@@ -24,6 +28,8 @@
       const data = await bm.getApiData('/base-profile', {id})
 
       if (!data) throw new Error('No data returned')
+
+      dataRef.child('bases').child(id).set(data)
 
       res.json(data)
     } catch (err) {
@@ -48,6 +54,8 @@
 
       if (!data) throw new Error('No data returned')
 
+      dataRef.child('clusters').child(id).set(data)
+
       res.json(data)
     } catch (err) {
       return res.status(err.code || 500).json({error: err.message})
@@ -70,6 +78,8 @@
 
       if (!data) throw new Error('No data returned')
 
+      dataRef.child('battleDetails').child(id).set(data)
+
       res.json(data)
     } catch (err) {
       return res.status(err.code || 500).json({error: err.message})
@@ -79,7 +89,10 @@
   app.get('/getBattles', (req, res) => {
     if (debug) console.log('REQUEST: getBattles')
     return bm.getBattleList()
-      .then(data => res.json(data))
+      .then(data => {
+        dataRef.child('battles').set(data)
+        return res.json(data)
+      })
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
