@@ -2,3 +2,5 @@
 debug/
 config.js
 /node_modules/
+/.debug
+/.tmp

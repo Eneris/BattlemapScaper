@@ -78,7 +78,7 @@ module.exports = class Battlemap {
     await delay(2000)
 
     if (debug) {
-      await this.page.render('../.debug/loginHard.png')
+      await this.page.render('.debug/loginHard.png')
     }
 
     return true
@@ -87,14 +87,14 @@ module.exports = class Battlemap {
   async googleLogin(credentials) {
     if (debug) {
       console.log('Hard login started')
-      await this.page.render('../.debug/LoginStageEmail.png')
+      await this.page.render('.debug/LoginStageEmail.png')
     }
 
     const pageCheck = await this.page.evaluate(function() {
       return !!document.querySelector('#Email')
     })
 
-    if (!pageCheck) await this.page.render('../.debug/missingForm.png')
+    if (!pageCheck) await this.page.render('.debug/missingForm.png')
 
     /*  console.log(await this.page.evaluate(function() {
        return document.innerHTML
@@ -107,7 +107,7 @@ module.exports = class Battlemap {
 
     await delay(1000)
 
-    if (debug) await this.page.render('../.debug/LoginStagePassword.png')
+    if (debug) await this.page.render('.debug/LoginStagePassword.png')
 
     await this.page.evaluate(function(credentials) {
       document.querySelector('#Passwd').value = credentials.password
@@ -117,7 +117,7 @@ module.exports = class Battlemap {
     await delay(1000)
 
     if (debug) {
-      await this.page.render('../.debug/LoginStageLoad.png')
+      await this.page.render('.debug/LoginStageLoad.png')
     }
 
     return true
@@ -125,7 +125,7 @@ module.exports = class Battlemap {
 
   async isLoginNeeded() {
     if (debug) {
-      await this.page.render('../.debug/isLoginNeeded.png')
+      await this.page.render('.debug/isLoginNeeded.png')
     }
 
     const result = await this.page.evaluate(function() {
@@ -146,7 +146,7 @@ module.exports = class Battlemap {
 
   async getApiData(queryEndpoint, requestData, method = 'post') {
     return this.page.evaluate(function(queryEndpoint, customRequestData, method) {
-      return JSON.parse(window.ajaxController.getValues(queryEndpoint, method, customRequestData))
+      return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
     }, queryEndpoint, requestData, method)
   }
 
@@ -170,5 +170,9 @@ module.exports = class Battlemap {
 
   async getSearchQuery(queryString, faction = 0) {
     return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
+  }
+
+  async render(fileName, options = {}) {
+    return this.page.render(fileName, options)
   }
 }
