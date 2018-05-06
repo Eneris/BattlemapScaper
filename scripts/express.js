@@ -2,51 +2,74 @@
   const path = require('path')
   const express = require('express')
   const app = express()
-  const { credentials, expressPort } = require('../config')
+  const { credentials, expressPort, debug } = require('../config')
   const Battlemap = require('../libs/battlemap')
 
   const bm = new Battlemap()
 
   await bm.init(credentials)
 
-  app.get('/getBase/:baseId', (req, res) => {
-    const id = req.params.baseId
+  app.get('/getBase/:baseId', async (req, res) => {
+    let id = req.params.baseId
 
-    if (!id) {
-      return res.status(400).json({error: 'Wrong base id'})
+    if (debug) console.log('REQUEST: getBase', id)
+
+    try {
+      if (String(id).match(/[a-zA-Z]/)) {
+        id = await bm.getIdFromQuery(id)
+      }
+
+      if (!id) throw new Error('Wrong base id')
+
+      const data = await bm.getApiData('/base-profile', {id})
+
+      if (!data) throw new Error('No data returned')
+
+      res.json(data)
+    } catch (err) {
+      return res.status(err.code || 500).json({error: err.message})
     }
-
-    return bm.getApiData('/base-profile', {id})
-      .then(data => res.json(data))
-      .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
-  app.get('/getCluster/:baseId/:type?', (req, res) => {
-    const baseId = req.params.baseId
+  app.get('/getCluster/:baseId/:type?', async (req, res) => {
+    let id = req.params.baseId
     const type = req.params.type || 'simulation'
 
-    if (!baseId) {
-      return res.status(400).json({error: 'Wrong base id'})
-    }
+    if (debug) console.log('REQUEST: getCluster', id, type)
 
-    return bm.getApiData('/base-cluster-data', {id: baseId, type: type})
-      .then(data => res.json(data))
-      .catch(err => res.status(err.code || 500).json({error: err.message}))
+    try {
+      if (String(id).match(/[a-zA-Z]/)) {
+        id = await bm.getIdFromQuery(id)
+      }
+
+      if (!id) throw new Error('Wrong base id')
+
+      const data = await bm.getApiData('/base-cluster-data', {id, type})
+
+      if (!data) throw new Error('No data returned')
+
+      res.json(data)
+    } catch (err) {
+      return res.status(err.code || 500).json({error: err.message})
+    }
   })
 
   app.get('/getBattles', (req, res) => {
+    if (debug) console.log('REQUEST: getBattles')
     return bm.getBattleList()
       .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
   app.get('/reauth', (req, res) => {
+    if (debug) console.log('REQUEST: reauth')
     return bm.login(credentials)
       .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
   app.get('/getScreen', (req, res) => {
+    if (debug) console.log('REQUEST: getScreen')
     return bm.render('.tmp/screen.png')
       .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../.tmp') }))
       .catch(err => res.status(err.code || 500).json({error: err.message}))

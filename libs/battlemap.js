@@ -145,9 +145,20 @@ module.exports = class Battlemap {
   }
 
   async getApiData(queryEndpoint, requestData, method = 'post') {
-    return this.page.evaluate(function(queryEndpoint, customRequestData, method) {
+    const data = await this.page.evaluate(function(queryEndpoint, customRequestData, method) {
       return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
     }, queryEndpoint, requestData, method)
+
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data)
+      } catch (err) {
+        console.log('Failed to parse JSON string', data)
+        console.error(err)
+      }
+    }
+
+    return data
   }
 
   // Predefined queries
@@ -174,5 +185,15 @@ module.exports = class Battlemap {
 
   async render(fileName, options = {}) {
     return this.page.render(fileName, options)
+  }
+
+  async getIdFromQuery(queryName) {
+    const searchData = await this.getSearchQuery(queryName)
+
+    if (!searchData.length) {
+      throw new Error('Base ' + queryName + ' not found')
+    }
+
+    return searchData.pop().id
   }
 }
