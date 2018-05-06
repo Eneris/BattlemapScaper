@@ -54,6 +54,28 @@
     }
   })
 
+  app.get('/getBattle/:id', async (req, res) => {
+    let id = req.params.id
+
+    if (debug) console.log('REQUEST: getCluster', id)
+
+    try {
+      if (String(id).match(/[a-zA-Z]/)) {
+        id = await bm.getIdFromQuery(id)
+      }
+
+      if (!id) throw new Error('Wrong battle id')
+
+      const data = await bm.getBattleDetails(id)
+
+      if (!data) throw new Error('No data returned')
+
+      res.json(data)
+    } catch (err) {
+      return res.status(err.code || 500).json({error: err.message})
+    }
+  })
+
   app.get('/getBattles', (req, res) => {
     if (debug) console.log('REQUEST: getBattles')
     return bm.getBattleList()
