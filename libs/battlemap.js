@@ -2,7 +2,6 @@ const phantom = require('phantom')
 
 const {
   loginPage,
-  credentials,
   debug
 } = require('../config')
 

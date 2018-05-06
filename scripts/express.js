@@ -16,7 +16,7 @@
   const checkIdParam = (req, res, next) => {
     const id = req.params.id
     console.log(id)
-    
+
     if (String(id).match(/[a-zA-Z]/)) {
       bm.getIdFromQuery(id)
         .then(id => (req.queryDataId = id))
