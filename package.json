@@ -8,12 +8,14 @@
     "node": ">=8.0.0"
   },
   "scripts": {
+    "express": "node scripts/express.js",
     "battleList": "node scripts/battleList.js",
     "telegram": "node scripts/telegram.js",
     "test": "npx eslint ."
   },
   "author": "Eneris<eneris.cz@gmail.com>",
   "dependencies": {
+    "express": "^4.16.3",
     "phantom": "^4.0.12",
     "tgfancy": "^0.13.0"
   },

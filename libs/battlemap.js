@@ -36,7 +36,7 @@ module.exports = class Battlemap {
 
     await this.login(credentials)
 
-    console.log('Init done')
+    if (debug) console.log('Init done')
 
     return this.page
   }
@@ -45,6 +45,7 @@ module.exports = class Battlemap {
     return this.instance.exit()
   }
 
+  // Auth section
   async login(credentials) {
     if (debug) {
       console.log('Login started')
@@ -138,45 +139,36 @@ module.exports = class Battlemap {
     return !result
   }
 
-  async getBattleList(withPlayers = false) {
+  // Generic functions section
+  async evaluate(functionToCall, ...params) {
+    return this.page.evaluate(functionToCall, ...params)
+  }
+
+  async getApiData(queryEndpoint, requestData, method = 'post') {
+    return this.page.evaluate(function(queryEndpoint, customRequestData, method) {
+      return JSON.parse(window.ajaxController.getValues(queryEndpoint, method, customRequestData))
+    }, queryEndpoint, requestData, method)
+  }
+
+  // Predefined queries
+  async getBattleList() {
     const battles = await this.page.evaluate(function() {
       return window.battleLogAPIController.getBattles() || []
     })
-
-    if (withPlayers) {
-      ;
-    }
 
     return battles
   }
 
   async getBattleDetails(battleID) {
-    console.log('Getting battle details for', battleID)
+    if (debug) console.log('Getting battle details for', battleID)
     const battle = await this.page.evaluate(function(battleID) {
       return window.battleLogAPIController.getBattleDetails({battleID: battleID})
     }, battleID)
-
-    console.log('Query result', battle)
 
     return battle
   }
 
   async getSearchQuery(queryString, faction = 0) {
-    return this.page.evaluate(function(queryString, faction) {
-      return new Promise((resolve, reject) => {
-        /* global $ */
-        $.ajax({
-          url: '/search',
-          data: {
-            term: queryString,
-            faction: faction || 0
-          },
-          success: resolve,
-          fail: reject
-        })
-      })
-    }, {queryString})
+    return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
   }
-
-  /* async getBattleIdFromQuery(queryString) */
 }
