@@ -2,6 +2,7 @@ const phantom = require('phantom')
 
 const {
   loginPage,
+  homePage,
   debug
 } = require('../config')
 
@@ -23,6 +24,8 @@ module.exports = class Battlemap {
     this.credentials = credentials
     this.instance = await phantom.create([
       '--cookies-file=../.cookies/cookies.txt',
+      '--remote-debugger-port=9000',
+      '--remote-debugger-autorun=yes',
       '--ssl-protocol=tlsv1',
       '--ssl-protocol=any',
       '--web-security=false',
@@ -33,22 +36,7 @@ module.exports = class Battlemap {
 
     await this.page.property('viewportSize', {width: 1920, height: 1080})
 
-    await this.login(credentials)
-
-    if (debug) console.log('Init done')
-
-    return this.page
-  }
-
-  async exit() {
-    return this.instance.exit()
-  }
-
-  // Auth section
-  async login(credentials) {
     if (debug) {
-      console.log('Login started')
-
       if (debug === 'verbose') {
         await this.page.on('onResourceRequested', function(requestData) {
           console.info('Requesting', requestData.url)
@@ -62,8 +50,27 @@ module.exports = class Battlemap {
       await this.page.on('onError', function(errorData) {
         console.error('Resource error', errorData)
       })
+
+      await this.page.on('onConsoleMessage', function(...args) {
+        console.log(...args)
+      })
     }
 
+    await this.page.open(homePage)
+    // await this.login(credentials)
+
+    if (debug) console.log('Init done')
+
+    return this.page
+  }
+
+  async exit() {
+    return this.instance.exit()
+  }
+
+  // Auth section
+  async login(credentials) {
+    console.log('Login started')
     const status = await this.page.open(loginPage)
 
     if (status === 'fail') {
@@ -143,14 +150,19 @@ module.exports = class Battlemap {
     return this.page.evaluate(functionToCall, ...params)
   }
 
-  async getApiData(queryEndpoint, requestData = {}, method = 'post') {
-    return this.page.evaluate(function(queryEndpoint, customRequestData, method) {
+  async getApiData(queryEndpoint, requestData = {}, method = 'post', isRecursion = false) {
+    if (debug === 'verbose') console.log('Getting api data', queryEndpoint, requestData, method, isRecursion)
+
+    const result = this.page.evaluate(function(queryEndpoint, customRequestData, method) {
       // This one has silenced error
       // return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
 
       /* global $ */
-      return new Promise(function(resolve, reject) {
-        $.ajax({
+      return new Promise((resolve, reject) => {
+        // Set security timeout
+        // const timeoutTimer = setTimeout(reject, 10000)
+
+        return $.ajax({
           type: method,
           url: queryEndpoint,
           data: customRequestData,
@@ -158,47 +170,75 @@ module.exports = class Battlemap {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
           },
           async: !1,
-          success: resolve,
-          error: reject
+          success: (data, state, response) => {
+            // clearTimeout(timeoutTimer)
+            resolve({data, state, response})
+          },
+          error: (response, state, message) => {
+            // clearTimeout(timeoutTimer)
+            resolve({response, state, message}) // TODO: This is ugly but we need response object
+          }
         })
       })
     }, queryEndpoint, requestData, method)
       .then(data => {
+        console.log('first', data)
+        if (debug === 'verbose') console.log('Got response', data)
+        if (data.state !== 'success' || data.response.state !== 200) {
+          const error = new Error(data.response.responseJSON || data.response.statusText)
+          error.code = data.response.status
+          throw error
+        }
+
+        return data.data
+      })
+      .then(data => {
+        console.log('got data', data)
         if (typeof data === 'string') {
           try {
             return JSON.parse(data)
           } catch (err) {
-            console.log('Failed to parse JSON string', data)
-            console.error(err)
+            console.error('Failed to parse JSON')
+            console.log(data)
+            return data
           }
-        } else if (typeof data === 'object' && typeof data.message === 'string' && data.message === '') {
-          // Second Unauthorized error check here - DeltaT server is too unpredictable
-          throw new Error('Login probably expired')
-        } else if (data.st === 0) {
-          throw new Error('Server returned negative status from some reason')
         }
 
-        return data._result
+        return data
       })
-      .catch(err => {
-        let error
-        // Here is at least some error handler
-        if (err.status >= 400 && err.status <= 499) {
-          error = new Error('Unauthorized')
-          error.code = 500
-        } else if (err.status === 500) {
-          error = new Error('DeltaT server is down')
-          error.code = 500
-        } else {
-          error = new Error(err.message)
-          error.code = err.status
+      .catch(async err => {
+        console.log('got error', err)
+        if (!err.code) throw err
+
+        let newError
+
+        switch (err.code) {
+          case 401:
+          case 419:
+            console.log('Got unauthorized')
+            if (isRecursion) break
+            console.log('Doing reauth on fly')
+            await this.login(this.credentials)
+            return this.getApiData(queryEndpoint, requestData, method, true)
+
+          case 500:
+            console.error('BattleMap crashed')
+            newError = new Error('BattleMap crashed with error 500')
+            newError.code = 500
+            throw newError
         }
 
-        throw error
+        newError = new Error('BattleMap request failed from some reason')
+        newError.code = err.code || 500
+        newError.data = err.message
+        throw newError
       })
+
+    return result
   }
 
   async render(fileName, options = {}) {
+    if (debug === 'verbose') console.log('getting screenshot')
     return this.page.render(fileName, options)
   }
 
@@ -207,6 +247,10 @@ module.exports = class Battlemap {
   }
 
   // Predefined queries
+  getBattles() {
+    return this.getApiData('get-battles', { factions: [1, 2, 3, 4], resolution: 0 })
+  }
+
   async getIdFromQuery(queryName) {
     const searchData = await this.getSearchQuery(queryName)
 
