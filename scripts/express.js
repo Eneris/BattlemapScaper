@@ -19,8 +19,10 @@
 
     if (String(id).match(/[a-zA-Z]/)) {
       bm.getIdFromQuery(id)
-        .then(id => (req.queryDataId = id))
-        .then(() => next())
+        .then(id => {
+          req.queryDataId = id
+          return next()
+        })
         .catch(err => res.status(err.code || 400).json({error: err.message}))
     } else {
       req.queryDataId = id
@@ -34,7 +36,7 @@
     if (debug) console.log('REQUEST: getBase', id)
 
     try {
-      const data = await bm.getApiData('/base-profile', {id})
+      const data = await bm.getBase(id)
       dataRef.child('bases').child(id).set(data)
       res.json(data)
     } catch (err) {

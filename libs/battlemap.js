@@ -154,14 +154,13 @@ module.exports = class Battlemap {
     if (debug === 'verbose') console.log('Getting api data', queryEndpoint, requestData, method, isRecursion)
 
     const result = this.page.evaluate(function({queryEndpoint, customRequestData, method}) {
-      // This one has silenced error
+      // This one has silenced errors
       // return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
 
       /* global $ */
       return new Promise((resolve, reject) => {
         // Set security timeout
-        // const timeoutTimer = setTimeout(reject, 10000)
-        resolve([], {}, {})
+        // const timeoutTimer = setTimeout(() => reject({code: 999}), 10000)
         $.ajax({
           type: method,
           url: queryEndpoint,
@@ -182,7 +181,10 @@ module.exports = class Battlemap {
       })
     }, {queryEndpoint, requestData, method})
       .then(data => {
-        console.log('first', data)
+        console.log(data)
+        return data
+      })
+      .then(data => {
         if (debug === 'verbose') console.log('Got response', data)
         if (data.state !== 'success' || data.response.state !== 200) {
           const error = new Error(data.response.responseJSON || data.response.statusText)
@@ -193,7 +195,6 @@ module.exports = class Battlemap {
         return data.data
       })
       .then(data => {
-        console.log('got data', data)
         if (typeof data === 'string') {
           try {
             return JSON.parse(data)
@@ -207,7 +208,7 @@ module.exports = class Battlemap {
         return data
       })
       .catch(async err => {
-        console.log('got error', err)
+        console.error(err)
         if (!err.code) throw err
 
         let newError
@@ -220,12 +221,22 @@ module.exports = class Battlemap {
             console.log('Doing reauth on fly')
             await this.login(this.credentials)
             return this.getApiData(queryEndpoint, requestData, method, true)
+            // break
 
           case 500:
             console.error('BattleMap crashed')
             newError = new Error('BattleMap crashed with error 500')
             newError.code = 500
             throw newError
+            // break
+
+          case 999: // TODO: Find the way to throw it...
+            console.error('PhantomJS crashed... recovering')
+            await this.init(this.credentials)
+            newError = new Error('PhantomJS crashed... Probably from some syntax error')
+            newError.code = 500
+            throw newError
+            // break
         }
 
         newError = new Error('BattleMap request failed from some reason')
@@ -244,6 +255,11 @@ module.exports = class Battlemap {
 
   async getSearchQuery(queryString, faction = 0) {
     return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
+  }
+
+  async getBase(id) {
+    const baseData = await this.getApiData('/base-profile', {id})
+    return baseData.dt
   }
 
   // Predefined queries
