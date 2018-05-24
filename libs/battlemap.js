@@ -57,7 +57,7 @@ module.exports = class Battlemap {
     }
 
     await this.page.open(homePage)
-    // await this.login(credentials)
+    await this.login(credentials)
 
     if (debug) console.log('Init done')
 
@@ -153,7 +153,7 @@ module.exports = class Battlemap {
   async getApiData(queryEndpoint, requestData = {}, method = 'post', isRecursion = false) {
     if (debug === 'verbose') console.log('Getting api data', queryEndpoint, requestData, method, isRecursion)
 
-    const result = this.page.evaluate(function(queryEndpoint, customRequestData, method) {
+    const result = this.page.evaluate(function({queryEndpoint, customRequestData, method}) {
       // This one has silenced error
       // return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
 
@@ -161,8 +161,8 @@ module.exports = class Battlemap {
       return new Promise((resolve, reject) => {
         // Set security timeout
         // const timeoutTimer = setTimeout(reject, 10000)
-
-        return $.ajax({
+        resolve([], {}, {})
+        $.ajax({
           type: method,
           url: queryEndpoint,
           data: customRequestData,
@@ -180,7 +180,7 @@ module.exports = class Battlemap {
           }
         })
       })
-    }, queryEndpoint, requestData, method)
+    }, {queryEndpoint, requestData, method})
       .then(data => {
         console.log('first', data)
         if (debug === 'verbose') console.log('Got response', data)
@@ -248,7 +248,10 @@ module.exports = class Battlemap {
 
   // Predefined queries
   getBattles() {
-    return this.getApiData('get-battles', { factions: [1, 2, 3, 4], resolution: 0 })
+    // return this.getApiData('get-battles', { factions: [1, 2, 3, 4], resolution: 0 })
+    return this.page.evaluate(function() {
+      return window.battleLogAPIController.getBattles({})
+    })
   }
 
   async getIdFromQuery(queryName) {
@@ -263,5 +266,11 @@ module.exports = class Battlemap {
     }
 
     return searchData.pop().id
+  }
+
+  async checkHealth() {
+    return this.page.evaluateAsync(function() {
+      return !!Promise
+    })
   }
 }
