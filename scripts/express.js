@@ -77,7 +77,6 @@
     if (debug) console.log('REQUEST: getBattles')
     return bm.getBattles()
       .then(data => {
-        console.log('Got battles', data)
         dataRef.child('battles').set(data)
         return res.json(data)
       })

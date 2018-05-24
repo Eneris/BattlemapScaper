@@ -181,10 +181,6 @@ module.exports = class Battlemap {
       })
     }, {queryEndpoint, requestData, method})
       .then(data => {
-        console.log(data)
-        return data
-      })
-      .then(data => {
         if (debug === 'verbose') console.log('Got response', data)
         if (data.state !== 'success' || data.response.state !== 200) {
           const error = new Error(data.response.responseJSON || data.response.statusText)
