@@ -6,7 +6,7 @@
 
   await bm.init(credentials)
 
-  const battles = await bm.getBattleList()
+  const battles = await bm.getBattles()
 
   console.log(battles)
 
