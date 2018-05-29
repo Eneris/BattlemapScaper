@@ -11,11 +11,6 @@ const {
   delay
 } = require('./functions')
 
-const {
-  saveCookies,
-  loadCookies
-} = require('./cookies')
-
 module.exports = class Battlemap {
   constructor(credentials) {
     this.page = null
