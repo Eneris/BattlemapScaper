@@ -31,7 +31,7 @@ module.exports = class Battlemap {
 
     this.instance = await puppeteer.launch({
       userDataDir: './.userData',
-      headless: false,
+      headless: debug !== 'verbose',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox'
