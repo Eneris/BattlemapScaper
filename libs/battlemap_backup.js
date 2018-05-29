@@ -1,5 +1,4 @@
-const puppeteer = require('puppeteer')
-const fs = require('fs')
+const phantom = require('phantom')
 
 const {
   loginPage,
@@ -10,11 +9,6 @@ const {
 const {
   delay
 } = require('./functions')
-
-const {
-  saveCookies,
-  loadCookies
-} = require('./cookies')
 
 module.exports = class Battlemap {
   constructor(credentials) {
@@ -28,42 +22,42 @@ module.exports = class Battlemap {
 
   async init(credentials) {
     this.credentials = credentials
+    this.instance = await phantom.create([
+      '--cookies-file=../.cookies/cookies.txt',
+      '--remote-debugger-port=9000',
+      '--remote-debugger-autorun=yes',
+      '--ssl-protocol=tlsv1',
+      '--ssl-protocol=any',
+      '--web-security=false',
+      '--ignore-ssl-errors=true'
+    ])
 
-    this.instance = await puppeteer.launch({
-      userDataDir: './.userData',
-      headless: false,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
-      ]
-    })
+    this.page = await this.instance.createPage()
 
-    this.page = await this.instance.newPage()
-
-    await this.page.setUserAgent('Mozilla/5.0 (Windows NT 6.2 WOW64) AppleWebKit/538.1 (KHTML, like Gecko) Safari/538.1')
-
-    await this.page.setViewport({
-      width: 1920,
-      height: 1080,
-      isMobile: false,
-      hasTouch: false,
-      isLandscape: true
-    })
+    await this.page.property('viewportSize', {width: 1920, height: 1080})
 
     if (debug) {
       if (debug === 'verbose') {
-        this.page.on('request', request => console.log('REQUEST', request.url()))
-        this.page.on('console', msg => console.log('CONSOLE', msg._text))
+        await this.page.on('onResourceRequested', function(requestData) {
+          console.info('Requesting', requestData.url)
+        })
       }
 
-      this.page.on('pageerror', err => console.error(err))
+      await this.page.on('onResourceError', function(errorData) {
+        console.error('Resource error', errorData)
+      })
+
+      await this.page.on('onError', function(errorData) {
+        console.error('Resource error', errorData)
+      })
+
+      await this.page.on('onConsoleMessage', function(...args) {
+        console.log(...args)
+      })
     }
 
-    await this.page.goto(homePage)
-
-    if (await this.isLoginNeeded(3000)) {
-      await this.login(credentials)
-    }
+    await this.page.open(homePage)
+    await this.login(credentials)
 
     if (debug) console.log('Init done')
 
@@ -71,69 +65,84 @@ module.exports = class Battlemap {
   }
 
   async exit() {
-    return this.instance.close()
+    return this.instance.exit()
   }
 
   // Auth section
   async login(credentials) {
     console.log('Login started')
+    const status = await this.page.open(loginPage)
 
-    if (debug) {
-      await this.screenshot('.debug/loginHard.png')
+    if (status === 'fail') {
+      throw new Error('Failed to load page ' + loginPage)
     }
 
-    if (debug) {
-      console.log('Hard login started')
-      await this.screenshot('.debug/LoginStageEmail.png')
+    if (await this.isLoginNeeded()) {
+      await this.googleLogin(credentials)
     }
 
-    console.log('Credentials', credentials)
-    await this.page.goto(loginPage)
+    await delay(2000)
 
-    try {
-      await this.page.waitForSelector('#Email', { timeout: 1000 })
-      await this.page.type('#Email', credentials.email) //, { delay: 25 })
-
-      await this.page.click('#next')
-      await this.page.waitForNavigation()
-
-      await this.page.waitForSelector('#Passwd', { timeout: 1000 })
-      await this.page.type('#Passwd', credentials.password) //, { delay: 25 })
-
-      await this.page.click('#signIn')
-      await this.page.waitForNavigation()
-
-      try {
-        await this.page.waitForSelector('#skipChallenge,#challengePickerList', { timeout: 500 })
-        console.error('Waiting for 2Way challenge')
-        await this.isLoginNeeded(15000) // Waiting 15s for 2Way to complete
-      } catch (err) {}
-
-      if (await this.isLoginNeeded(5000)) {
-        await this.screenshot('.debug/loginFailed.png')
-        throw new Error('Login failed')
-      }
-    } catch (err) {
-      await this.screenshot('.debug/missingForm.png')
-      throw new Error('Google form not found in time!' + err.message)
+    if (debug) {
+      await this.page.render('.debug/loginHard.png')
     }
 
     return true
   }
 
-  async isLoginNeeded(timeout = 1) {
+  async googleLogin(credentials) {
     if (debug) {
-      await this.screenshot('.debug/isLoginNeeded.png')
+      console.log('Hard login started')
+      await this.page.render('.debug/LoginStageEmail.png')
     }
 
-    try {
-      await this.page.waitForSelector('#user-auth-id', { timeout })
-      console.log('Login is not needed')
-      return false
-    } catch (err) {
-      console.log('Login is needed')
-      return true
+    const pageCheck = await this.page.evaluate(function() {
+      return !!document.querySelector('#Email')
+    })
+
+    if (!pageCheck) await this.page.render('.debug/missingForm.png')
+
+    /*  console.log(await this.page.evaluate(function() {
+       return document.innerHTML
+     })) */
+
+    await this.page.evaluate(function(credentials) {
+      document.querySelector('#Email').value = credentials.email
+      document.querySelector('#next').click()
+    }, credentials)
+
+    await delay(1000)
+
+    if (debug) await this.page.render('.debug/LoginStagePassword.png')
+
+    await this.page.evaluate(function(credentials) {
+      document.querySelector('#Passwd').value = credentials.password
+      document.querySelector('#signIn').click()
+    }, credentials)
+
+    await delay(1000)
+
+    if (debug) {
+      await this.page.render('.debug/LoginStageLoad.png')
     }
+
+    return true
+  }
+
+  async isLoginNeeded() {
+    if (debug) {
+      await this.page.render('.debug/isLoginNeeded.png')
+    }
+
+    const result = await this.page.evaluate(function() {
+      return !!document.querySelector('#user-auth-id')
+    })
+
+    if (debug) {
+      console.log(result ? 'Login recovered' : 'Login required')
+    }
+
+    return !result
   }
 
   // Generic functions section
@@ -144,7 +153,7 @@ module.exports = class Battlemap {
   async getApiData(queryEndpoint, requestData = {}, method = 'post', isRecursion = false) {
     if (debug === 'verbose') console.log('Getting api data', queryEndpoint, requestData, method, isRecursion)
 
-    const result = this.page.evaluate((queryEndpoint, requestData, method) => {
+    const result = this.page.evaluate(function(args) {
       // This one has silenced errors
       // return window.ajaxController.getValues(queryEndpoint, method, customRequestData)
       try {
@@ -153,20 +162,20 @@ module.exports = class Battlemap {
           // Set security timeout
           // const timeoutTimer = setTimeout(() => reject({code: 999}), 10000)
           $.ajax({
-            type: method,
-            url: queryEndpoint,
-            data: requestData,
+            type: args.method,
+            url: args.queryEndpoint,
+            data: args.customRequestData,
             headers: {
               'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             async: !1,
             success: (data, state, response) => {
               // clearTimeout(timeoutTimer)
-              resolve({ data, state, response })
+              resolve({data, state, response})
             },
             error: (response, state, message) => {
               // clearTimeout(timeoutTimer)
-              resolve({ response, state, message }) // TODO: This is ugly but we need response object
+              resolve({response, state, message}) // TODO: This is ugly but we need response object
             },
             timeout: 10000
           })
@@ -174,10 +183,11 @@ module.exports = class Battlemap {
       } catch (err) {
         return Promise.resolve(err.message)
       }
-    }, queryEndpoint, requestData, method)
+    }, {queryEndpoint, requestData, method})
       .then(data => {
+        console.log('Got data', data)
         if (debug === 'verbose') console.log('Got response', data)
-        if (data.state !== 'success' || data.response.status !== 200) {
+        if (data.state !== 'success' || data.response.state !== 200) {
           const error = new Error(data.response.responseJSON || data.response.statusText)
           error.code = data.response.status
           throw error
@@ -212,14 +222,14 @@ module.exports = class Battlemap {
             console.log('Doing reauth on fly')
             await this.login(this.credentials)
             return this.getApiData(queryEndpoint, requestData, method, true)
-          // break
+            // break
 
           case 500:
             console.error('BattleMap crashed')
             newError = new Error('BattleMap crashed with error 500')
             newError.code = 500
             throw newError
-          // break
+            // break
 
           case 999: // TODO: Find the way to throw it...
             console.error('PhantomJS crashed... recovering')
@@ -227,7 +237,7 @@ module.exports = class Battlemap {
             newError = new Error('PhantomJS crashed... Probably from some syntax error')
             newError.code = 500
             throw newError
-          // break
+            // break
         }
 
         newError = new Error('BattleMap request failed from some reason')
@@ -239,17 +249,17 @@ module.exports = class Battlemap {
     return result
   }
 
-  async screenshot(fileName, options = {}) {
+  async render(fileName, options = {}) {
     if (debug === 'verbose') console.log('getting screenshot')
-    return this.page.screenshot({ path: fileName, ...options })
+    return this.page.render(fileName, options)
   }
 
   async getSearchQuery(queryString, faction = 0) {
-    return this.getApiData('/search', { term: queryString, faction: faction }, 'get')
+    return this.getApiData('/search', {term: queryString, faction: faction}, 'get')
   }
 
   async getBase(id) {
-    const baseData = await this.getApiData('/base-profile', { id })
+    const baseData = await this.getApiData('/base-profile', {id})
     return baseData.dt
   }
 
@@ -266,15 +276,23 @@ module.exports = class Battlemap {
     const searchData = await this.getSearchQuery(queryName)
     console.log('Got data', searchData)
 
+    if (typeof searchData === 'object' && typeof searchData.message === 'string' && searchData.message === '') {
+      console.log('Error 1')
+      throw new Error('Login probably expired')
+    }
+
     if (!searchData.length) {
+      console.log('Error 2')
       throw new Error(queryName + ' not found')
     }
+
+    console.log('Pop')
 
     return searchData.pop().id
   }
 
   async checkHealth() {
-    return this.page.evaluateAsync(() => {
+    return this.page.evaluateAsync(function() {
       return !!Promise
     })
   }

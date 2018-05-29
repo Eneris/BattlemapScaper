@@ -18,11 +18,13 @@
     console.log(id)
 
     if (String(id).match(/[a-zA-Z]/)) {
+      console.log('Have to search for ID')
       bm.getIdFromQuery(id)
         .then(id => {
+          console.log('Found id', id)
           req.queryDataId = id
-          return next()
         })
+        .then(() => next())
         .catch(err => res.status(err.code || 400).json({error: err.message}))
     } else {
       req.queryDataId = id
@@ -94,6 +96,14 @@
     if (debug) console.log('REQUEST: getScreen')
     return bm.render('.tmp/screen.png')
       .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../.tmp') }))
+      .catch(err => res.status(err.code || 500).json({error: err.message}))
+  })
+
+  app.get('/getRequest/:opperation', (req, res) => {
+    if (!req.params.opperation) return res.status(400).json({error: 'Opperation is not defined'})
+
+    return bm.getApiData('/' + req.params.opperation, req.query)
+      .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
