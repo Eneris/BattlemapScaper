@@ -3,7 +3,7 @@ swagger: "2.0"
 info:
   description: "Description"
   version: "1.0.0"
-  title: "DeltaT cashing"
+  title: "BP cache service"
   termsOfService: ""
   contact:
     email: "eneris.cz@gmail.com"
