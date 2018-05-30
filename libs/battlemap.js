@@ -26,7 +26,7 @@ module.exports = class Battlemap {
 
     this.instance = await puppeteer.launch({
       userDataDir: './.userData',
-      headless: debug !== 'verbose',
+      headless: !!debug,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox'
@@ -87,6 +87,10 @@ module.exports = class Battlemap {
 
     console.log('Credentials', credentials)
     await this.page.goto(loginPage)
+
+    if (!(await this.isLoginNeeded())) {
+      return true
+    }
 
     try {
       await this.page.waitForSelector('#Email', { timeout: 1000 })

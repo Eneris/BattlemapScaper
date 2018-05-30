@@ -1,0 +1,201 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Description",
+    "version": "1.0.0",
+    "title": "DeltaT cashing",
+    "termsOfService": "",
+    "contact": {
+      "email": "eneris.cz@gmail.com"
+    }
+  },
+  "basePath": "/",
+  "servers": [
+    {
+      "url": "deltat.eneris.wtf"
+    },{
+      "url": "localhost:8080"
+    }
+  ],
+  "paths": {
+    "/getBase/{id}": {
+      "get": {
+        "summary": "Get base under given ID or QueryString",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID base to search",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/getCluster/{id}/{type}": {
+      "get": {
+        "summary": "Get cluster info with given baseId used as origin",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID base to search",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "description": "Type of simulation",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "simulation",
+              "ownfaction",
+              "battle",
+              "cluster"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/getBattle/{id}": {
+      "get": {
+        "summary": "Get current details for given battle",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID battle to search",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/getBattles": {
+      "get": {
+        "summary": "Get all battles",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/reauth": {
+      "patch": {
+        "summary": "Service function to force BM reauth sequence",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/getScreen": {
+      "get": {
+        "summary": "Returns screenshot of current BM container",
+        "produces": [
+          "image/png"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    },
+    "/getRequest": {
+      "post": {
+        "summary": "Proxy custom request to BM",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "Body",
+            "schema": {
+              "type": "object",
+              "required": [
+                "operation",
+                "method"
+              ],
+              "properties": {
+                "operation": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Not found or error"
+          }
+        }
+      }
+    }
+  }
+}

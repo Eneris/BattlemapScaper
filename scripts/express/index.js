@@ -2,9 +2,11 @@
   const path = require('path')
   const express = require('express')
   const app = express()
-  const { credentials, expressPort, debug } = require('../config')
-  const Battlemap = require('../libs/battlemap')
-  const Firebase = require('../libs/firebase')
+  const { credentials, expressPort, debug } = require('../../config')
+  const Battlemap = require('../../libs/battlemap')
+  const Firebase = require('../../libs/firebase')
+  const swaggerUi = require('swagger-ui-express')
+  const swaggerDocument = require('./swagger.json')
 
   const database = Firebase.database()
 
@@ -12,6 +14,17 @@
   const dataRef = database.ref('/data')
 
   await bm.init(credentials)
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+
+  app.use(function(error, req, res, next) {
+    if (error) {
+      console.error(error)
+    }
+
+    console.log('API:', req.originalUrl)
+    next()
+  })
 
   const checkIdParam = (req, res, next) => {
     const id = req.params.id
@@ -85,24 +98,24 @@
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
-  app.get('/reauth', (req, res) => {
-    if (debug) console.log('REQUEST: reauth')
-    return bm.login(credentials)
+  app.get('/getScreen', (req, res) => {
+    if (debug) console.log('REQUEST: getScreen')
+    return bm.screenshot('.tmp/screen.png')
+      .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../../.tmp') }))
+      .catch(err => res.status(err.code || 500).json({error: err.message}))
+  })
+
+  app.post('/getRequest', (req, res) => {
+    if (!req.body.opperation) return res.status(400).json({error: 'Opperation is not defined'})
+
+    return bm.getApiData('/' + req.body.opperation, req.body.query)
       .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
 
-  app.get('/getScreen', (req, res) => {
-    if (debug) console.log('REQUEST: getScreen')
-    return bm.screenshot('.tmp/screen.png')
-      .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../.tmp') }))
-      .catch(err => res.status(err.code || 500).json({error: err.message}))
-  })
-
-  app.get('/getRequest/:opperation', (req, res) => {
-    if (!req.params.opperation) return res.status(400).json({error: 'Opperation is not defined'})
-
-    return bm.getApiData('/' + req.params.opperation, req.query)
+  app.post('/reauth', (req, res) => {
+    if (debug) console.log('REQUEST: reauth')
+    return bm.login(credentials)
       .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
