@@ -7,7 +7,8 @@
   const Battlemap = require('../../libs/battlemap')
   const Firebase = require('../../libs/firebase')
   const swaggerUi = require('swagger-ui-express')
-  const swaggerDocument = require('./swagger.json')
+  const YAML = require('yamljs')
+  const swaggerDocument = YAML.load('./scripts/express/swagger.yml')
 
   const database = Firebase.database()
 

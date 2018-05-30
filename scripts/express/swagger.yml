@@ -1,4 +1,4 @@
-swagger: "2.0"
+swagger: "3.0"
 
 info:
   description: "Description"
@@ -9,7 +9,6 @@ info:
     email: "eneris.cz@gmail.com"
 
 basePath: "/"
-host: "deltat.eneris.wtf"
 
 paths:
   /getBase/{id}:
@@ -124,13 +123,19 @@ paths:
             properties:
               operation:
                 type: string
+                example: "get-battles"
               method:
                 type: string
+                example: "post"
               query:
                 type: object
+                properties:
+                  factions:
+                    example: [1,2,3,4]
+                  resolution:
+                    example: 0
       responses:
         200:
           description: "Success"
         500:
           description: "Not found or error"
-
