@@ -88,7 +88,7 @@ module.exports = class Battlemap {
     console.log('Credentials', credentials)
     await this.page.goto(loginPage)
 
-    if (!(await this.isLoginNeeded())) {
+    if (!(await this.isLoginNeeded(3000))) {
       return true
     }
 
