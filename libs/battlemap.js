@@ -51,7 +51,10 @@ module.exports = class Battlemap {
         this.page.on('console', msg => console.log('CONSOLE', msg._text))
       }
 
-      this.page.on('pageerror', err => console.error(err))
+      this.page.on('pageerror', err => {
+        console.log('PAGE Error')
+        console.error(err)
+      })
     }
 
     await this.page.goto(homePage)
