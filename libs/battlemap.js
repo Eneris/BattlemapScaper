@@ -257,9 +257,7 @@ module.exports = class Battlemap {
   }
 
   async getIdFromQuery(queryName) {
-    console.log('Got search')
     const searchData = await this.getSearchQuery(queryName)
-    console.log('Got data', searchData)
 
     if (!searchData.length) {
       throw new Error(queryName + ' not found')

@@ -94,7 +94,7 @@
 
   app.get('/getScreen', (req, res) => {
     if (debug) console.log('REQUEST: getScreen')
-    return bm.render('.tmp/screen.png')
+    return bm.screenshot('.tmp/screen.png')
       .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../.tmp') }))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
