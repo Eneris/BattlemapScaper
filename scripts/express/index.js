@@ -1,6 +1,7 @@
 (async function() {
   const path = require('path')
   const express = require('express')
+  const bodyParser = require('body-parser')
   const app = express()
   const { credentials, expressPort, debug } = require('../../config')
   const Battlemap = require('../../libs/battlemap')
@@ -13,7 +14,9 @@
   const bm = new Battlemap()
   const dataRef = database.ref('/data')
 
-  await bm.init(credentials)
+  bm.init(credentials)
+
+  app.use(bodyParser.json())
 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
@@ -106,9 +109,10 @@
   })
 
   app.post('/getRequest', (req, res) => {
-    if (!req.body.opperation) return res.status(400).json({error: 'Opperation is not defined'})
+    console.log(req.body)
+    if (!req.body.operation) return res.status(400).json({error: 'Opperation is not defined'})
 
-    return bm.getApiData('/' + req.body.opperation, req.body.query)
+    return bm.getApiData('/' + req.body.operation, req.body.query)
       .then(data => res.json(data))
       .catch(err => res.status(err.code || 500).json({error: err.message}))
   })
