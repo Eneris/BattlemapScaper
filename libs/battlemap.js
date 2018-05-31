@@ -109,7 +109,7 @@ module.exports = class Battlemap {
         await this.page.waitForSelector('#skipChallenge,#challengePickerList', { timeout: 500 })
         console.error('Waiting for 2Way challenge')
         await this.isLoginNeeded(15000) // Waiting 15s for 2Way to complete
-      } catch (err) {}
+      } catch (err) { }
 
       if (await this.isLoginNeeded(5000)) {
         await this.screenshot('.debug/loginFailed.png')
@@ -276,6 +276,22 @@ module.exports = class Battlemap {
   async checkHealth() {
     return this.page.evaluateAsync(() => {
       return !!Promise
+    })
+  }
+
+  async getBases(latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+    return this.page.evaluate((data) => {
+      return window.baseController.getBases(data)
+    }, {
+      minLevel,
+      maxLevel,
+      minHealth,
+      maxHealth,
+      faction,
+      bounds: {
+        latitude: [latMin, latMax],
+        longitude: [lngMin, lngMax]
+      }
     })
   }
 }
