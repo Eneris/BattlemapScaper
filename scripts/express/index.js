@@ -137,15 +137,11 @@ app.post('/reauth', (req, res) => {
 
 // GraphQL part
 const AnyType = new GraphQLScalarType({
-  name: 'Any',
-  description: 'Description of my custom scalar type',
-  serialize(value) {
-    return value
-  },
-  parseValue(value) {
-    return value
-  },
-  parseLiteral(ast) {
+  name: 'AnyType',
+  description: 'Here can be about anything. Mostly TODO structures',
+  serialize: (value) => value,
+  parseValue: (value) => value,
+  parseLiteral: (ast) => {
     switch (ast.kind) {
       case Kind.Int:
       default:
@@ -157,7 +153,6 @@ const AnyType = new GraphQLScalarType({
 const typeDefs = gql`
   type Query {
     battles: [Battle]
-    battleDetail(id: Int): BattleDetail
     bases(
       latMin: Float!,
       lngMin: Float!,
@@ -169,8 +164,9 @@ const typeDefs = gql`
       minHealth: Int,
       maxHealth: Int
     ): [Base]
-    baseDetail(id: Int!): BaseDetail
-    cluster(id: Int!, type: String): ClusterDetail
+    battleDetail(id: Int, query: String): BattleDetail
+    baseDetail(id: Int, query: String): BaseDetail
+    cluster(id: Int, query: String, type: String): ClusterDetail
     screen: AnyType
     search(term: String!, faction: Int): [AnyType]
     request(operation: String!, method: String, requestData: AnyType): AnyType
@@ -302,14 +298,41 @@ const typeDefs = gql`
 const resolvers = {
   AnyType: AnyType,
   Query: {
-    battles: (parentResult, args) => bm.getBattles(),
-    battleDetail: (parentRequest, args) => bm.getBattles(args.id),
-    bases: (parentResult, args) => bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth),
-    baseDetail: (parentRequest, args) => bm.getBase(args.id),
-    cluster: (parentRequest, args) => bm.getApiData('/base-cluster-data', {id: args.id, type: args.type || 'simulation'}),
-    screen: (parentRequest, args) => ({status: 'TODO get screeenshot'}),
-    search: (parentRequest, args) => bm.getSearchQuery(args.term, args.faction),
-    request: (parentRequest, args) => bm.getApiData(args.operation, args.requestData, args.method)
+    battles: (parentResult, args) => {
+      return bm.getBattles()
+    },
+    bases: (parentResult, args) => {
+      return bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+    },
+    battleDetail: async (parentRequest, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return bm.getBattles(args.id)
+    },
+    baseDetail: async (parentRequest, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return bm.getBase(args.id)
+    },
+    cluster: (parentRequest, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      return bm.getApiData('/base-cluster-data', {id: args.id, type: args.type || 'simulation'})
+    },
+    screen: (parentRequest, args) => {
+      return {status: 'TODO get screeenshot'}
+    },
+    search: (parentRequest, args) => {
+      return bm.getSearchQuery(args.term, args.faction)
+    },
+    request: (parentRequest, args) => {
+      return bm.getApiData(args.operation, args.requestData, args.method)
+    }
   }
 }
 
@@ -320,7 +343,7 @@ const schema = makeExecutableSchema({
 })
 
 // The GraphQL endpoint
-app.use('/graphql', bodyParser.json(), graphqlExpress({ schema }))
+app.use('/graphql', graphqlExpress({ schema }))
 
 // GraphiQL, a visual editor for queries
 app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
