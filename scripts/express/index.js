@@ -170,6 +170,29 @@ const typeDefs = gql`
     screen: AnyType
     search(term: String!, faction: Int): [AnyType]
     request(operation: String!, method: String, requestData: AnyType): AnyType
+    coreDetail(id: Int, query: String): AnyType
+    cores(
+      latMin: Float!,
+      lngMin: Float!,
+      latMax: Float!,
+      lngMax: Float!,
+      minLevel: Int,
+      maxLevel: Int,
+      minHealth: Int,
+      maxHealth: Int
+    ): AnyType
+    mineDetail(id: Int, query: String): AnyType
+    mines(
+      latMin: Float!,
+      lngMin: Float!,
+      latMax: Float!,
+      lngMax: Float!,
+      minLevel: Int,
+      maxLevel: Int,
+      minHealth: Int,
+      maxHealth: Int
+    ): AnyType
+    player(id: Int, query: String): AnyType
   }
 
   type Mutation {
@@ -304,6 +327,12 @@ const resolvers = {
     bases: (parentResult, args) => {
       return bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
     },
+    mines: (parent, args) => {
+      return bm.getMines(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+    },
+    cores: (parent, args) => {
+      return bm.getCores(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+    },
     battleDetail: async (parentRequest, args) => {
       if (!args.id && !args.query) throw new Error('Id or Query is needed!')
       if (!args.id && args.query) {
@@ -332,6 +361,30 @@ const resolvers = {
     },
     request: (parentRequest, args) => {
       return bm.getApiData(args.operation, args.requestData, args.method)
+    },
+    coreDetail: async (parent, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return bm.getApiData('/core-profile', {id: args.id}).then(data => data.dt)
+    },
+    mineDetail: async (parent, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return bm.getApiData('/poi-profile', {id: args.id}).then(data => data.dt)
+    },
+    player: async (parent, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return bm.getApiData('/player-public-profile', {id: args.id})
     }
   }
 }

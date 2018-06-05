@@ -319,4 +319,30 @@ module.exports = class Battlemap {
 
     return result1.concat(result2).concat(result3).concat(result4)
   }
+
+  async getMines(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+    return this.getPagedRequest('get-pois', {
+      minLevel,
+      maxLevel,
+      minHealth,
+      maxHealth,
+      bounds: {
+        latitude: [latMin, latMax],
+        longitude: [lngMin, lngMax]
+      }
+    }, 'POIs', 'POI')
+  }
+
+  async getCores(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+    return this.getPagedRequest('get-cores', {
+      minLevel,
+      maxLevel,
+      minHealth,
+      maxHealth,
+      bounds: {
+        latitude: [latMin, latMax],
+        longitude: [lngMin, lngMax]
+      }
+    }, 'cores', 'core')
+  }
 }
