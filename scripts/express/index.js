@@ -20,6 +20,8 @@ const Firebase = require('../../libs/firebase')
 const { graphqlExpress, graphiqlExpress } = require('apollo-server-express')
 const { makeExecutableSchema } = require('graphql-tools')
 const gql = require('graphql-tag')
+const { GraphQLScalarType } = require('graphql')
+const { Kind } = require('graphql/language')
 
 const database = Firebase.database()
 const bm = new Battlemap()
@@ -134,9 +136,28 @@ app.post('/reauth', (req, res) => {
 })
 
 // GraphQL part
+const AnyType = new GraphQLScalarType({
+  name: 'Any',
+  description: 'Description of my custom scalar type',
+  serialize(value) {
+    return value
+  },
+  parseValue(value) {
+    return value
+  },
+  parseLiteral(ast) {
+    switch (ast.kind) {
+      case Kind.Int:
+      default:
+        return ast.value
+    }
+  }
+})
+
 const typeDefs = gql`
   type Query {
-    battleList: [Battle]
+    battles: [Battle]
+    battleDetail(id: Int): BattleDetail
     bases(
       latMin: Float!,
       lngMin: Float!,
@@ -147,13 +168,53 @@ const typeDefs = gql`
       maxLevel: Int,
       minHealth: Int,
       maxHealth: Int
-    ): BasesResponse
+    ): [Base]
+    baseDetail(id: Int!): BaseDetail
+    cluster(id: Int!, type: String): ClusterDetail
+    screen: AnyType
+    search(term: String!, faction: Int): [AnyType]
+    request(operation: String!, method: String, requestData: AnyType): AnyType
   }
 
-  type BasesResponse {
-    count: Int,
-    lastID: Int,
-    bases: [Base]
+  type Mutation {
+    reauth: Int
+  }
+
+  scalar AnyType
+
+  type Base {
+    faction: Int,
+    health: Int,
+    id: Int,
+    latitude: Float,
+    level_id: Int,
+    longitude: Float,
+    name: String,
+    owner_id: Int
+  }
+
+  type BaseDetail {
+    av_pwr: Int,
+    bf: Int,
+    bs_hsid: String,
+    bs_id: Int,
+    bs_lnks: [BaseLink],
+    cr_lnks: [CoreLink],
+    cr_nm: String,
+    del: Boolean,
+    hth: Int,
+    lat: Float,
+    lng: Float,
+    lvl: Int,
+    mltng: Boolean,
+    mx_hth: Int,
+    nm: String,
+    ownr: String,
+    rings: [[Mod]],
+    strngth: Int,
+    tc_gen: Boolean,
+    tm_gen: Boolean,
+    us_pwr: Int
   }
 
   type Battle {
@@ -168,23 +229,87 @@ const typeDefs = gql`
     resolutionTime: String
   }
 
-  type Base {
-    faction: Int,
-    health: Int,
+  type BattleDetail {
+    attack_on:String,
+    dominance: AnyType,
     id: Int,
+    initiated_by_id: Int,
+    initiated_on: String,
+    is_cancelled: Int,
+    is_done: Int,
+    oppoBaseDetails: Base,
+    oppoClusterStrength: Int,
+    oppo_base: String,
+    oppo_base_fac_enum: Int,
+    oppo_base_final_profit: Int,
+    oppo_base_name: String,
+    ownBaseDetails: Base,
+    ownClusterStrength: Int,
+    own_base: String,
+    own_base_fac_enum: Int,
+    own_base_final_profit: Int,
+    own_base_name: String,
+    reservedPower: Int,
+    unique_name: String,
+    winner_fac_enum: AnyType
+  }
+
+  type ClusterDetail {
+    ClusterBases: [ClusterBase],
+    clusterBaseId: Int,
+    clusterBaseName: String,
+    clusterFor: String,
+    clusterLinks: [AnyType]
+    clusterStrength: Int,
+    factionEnum: Int,
+    parentBases: [Int],
+    type: String
+  }
+
+  type ClusterBase {
     latitude: Float,
-    level_id: Int,
     longitude: Float,
-    name: String,
-    owner_id: Int
+    linked_bases: LinkedBases,
+    faction: Int
+  }
+
+  type LinkedBases {
+    childs: AnyType,
+    parents: AnyType
+  }
+
+  type Mod {
+    cd: String,
+    hth: Int,
+    lvl: Int,
+    mx_hth: Int,
+    r_no: String
+  }
+
+  type BaseLink {
+    fwd: Boolean,
+    lng: Float,
+    ltd: Float
+  }
+
+  type CoreLink {
+    lng: Float,
+    ltd: Float
   }
 `
 
 // The resolvers
 const resolvers = {
+  AnyType: AnyType,
   Query: {
-    battleList: (parentResult, args) => bm.getBattles(),
-    bases: (parentResult, args) => bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+    battles: (parentResult, args) => bm.getBattles(),
+    battleDetail: (parentRequest, args) => bm.getBattles(args.id),
+    bases: (parentResult, args) => bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth),
+    baseDetail: (parentRequest, args) => bm.getBase(args.id),
+    cluster: (parentRequest, args) => bm.getApiData('/base-cluster-data', {id: args.id, type: args.type || 'simulation'}),
+    screen: (parentRequest, args) => ({status: 'TODO get screeenshot'}),
+    search: (parentRequest, args) => bm.getSearchQuery(args.term, args.faction),
+    request: (parentRequest, args) => bm.getApiData(args.operation, args.requestData, args.method)
   }
 }
 

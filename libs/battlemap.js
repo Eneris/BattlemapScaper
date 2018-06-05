@@ -251,8 +251,12 @@ module.exports = class Battlemap {
   }
 
   async getBase(id) {
-    const baseData = await this.getApiData('/base-profile', { id })
-    return baseData.dt
+    const baseData = (await this.getApiData('/base-profile', { id })).dt
+
+    return {
+      ...baseData,
+      rings: Object.values(baseData.rings)
+    }
   }
 
   // Predefined queries
@@ -279,10 +283,20 @@ module.exports = class Battlemap {
     })
   }
 
+  async getPagedRequest(endpoint, queryData, dataPathKey, lastIdParamPrefix) {
+    let response = (await this.getApiData(endpoint, queryData))
+    let mainData = response[dataPathKey]
+
+    while (response[dataPathKey].length) {
+      response = await this.getApiData(endpoint, {...queryData, [`${lastIdParamPrefix}LastID`]: response.lastID})
+      mainData = mainData.concat(response[dataPathKey])
+    }
+
+    return mainData
+  }
+
   async getBases(latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
-    return this.page.evaluate((data) => {
-      return window.baseController.getBases(data)
-    }, {
+    const params = {
       minLevel,
       maxLevel,
       minHealth,
@@ -292,6 +306,17 @@ module.exports = class Battlemap {
         latitude: [latMin, latMax],
         longitude: [lngMin, lngMax]
       }
-    })
+    }
+
+    if (faction) {
+      return this.getPagedRequest('get-bases', params, 'bases', 'base')
+    }
+
+    const result1 = await this.getPagedRequest('get-bases', {...params, faction: 1}, 'bases', 'base')
+    const result2 = await this.getPagedRequest('get-bases', {...params, faction: 2}, 'bases', 'base')
+    const result3 = await this.getPagedRequest('get-bases', {...params, faction: 3}, 'bases', 'base')
+    const result4 = await this.getPagedRequest('get-bases', {...params, faction: 4}, 'bases', 'base')
+
+    return result1.concat(result2).concat(result3).concat(result4)
   }
 }
