@@ -396,7 +396,7 @@ const schema = makeExecutableSchema({
 })
 
 // The GraphQL endpoint
-app.use('/graphql', graphqlExpress({ schema }))
+app.use('/graphql', bodyParser.json(), graphqlExpress({ schema }))
 
 // GraphiQL, a visual editor for queries
 app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
