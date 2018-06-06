@@ -186,7 +186,7 @@ const typeDefs = gql`
     ): AnyType
     mineDetail(id: Int, query: String): AnyType
     battleDetail(id: Int, query: String): BattleDetail
-    baseDetail(id: Int, query: String): BaseDetailResult
+    baseDetail(id: Int, query: String): BaseDetail
     clusterDetail(id: Int, query: String, type: String): ClusterDetail
     search(term: String!, faction: Int): [AnyType]
     request(operation: String!, method: String, requestData: AnyType): AnyType
