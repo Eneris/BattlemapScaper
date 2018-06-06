@@ -164,13 +164,6 @@ const typeDefs = gql`
       minHealth: Int,
       maxHealth: Int
     ): [Base]
-    battleDetail(id: Int, query: String): BattleDetail
-    baseDetail(id: Int, query: String): BaseDetail
-    cluster(id: Int, query: String, type: String): ClusterDetail
-    screen: AnyType
-    search(term: String!, faction: Int): [AnyType]
-    request(operation: String!, method: String, requestData: AnyType): AnyType
-    coreDetail(id: Int, query: String): AnyType
     cores(
       latMin: Float!,
       lngMin: Float!,
@@ -181,7 +174,6 @@ const typeDefs = gql`
       minHealth: Int,
       maxHealth: Int
     ): AnyType
-    mineDetail(id: Int, query: String): AnyType
     mines(
       latMin: Float!,
       lngMin: Float!,
@@ -192,7 +184,14 @@ const typeDefs = gql`
       minHealth: Int,
       maxHealth: Int
     ): AnyType
-    player(id: Int, query: String): AnyType
+    mineDetail(id: Int, query: String): AnyType
+    battleDetail(id: Int, query: String): BattleDetail
+    baseDetail(id: Int, query: String): BaseDetailResult
+    clusterDetail(id: Int, query: String, type: String): ClusterDetail
+    search(term: String!, faction: Int): [AnyType]
+    request(operation: String!, method: String, requestData: AnyType): AnyType
+    coreDetail(id: Int, query: String): CoreDetail
+    player(id: Int, query: String): Player
   }
 
   type Mutation {
@@ -200,6 +199,76 @@ const typeDefs = gql`
   }
 
   scalar AnyType
+
+  type CoreDetail {
+    c_id: Int,
+    c_b: [CoreLink],
+    p_g: Int,
+    cf: Int,
+    hth: Int,
+    edit_lock_time: Int,
+    _lng: Float,
+    _ltd: Float,
+    lat: Float,
+    cm_d: CoreUpgrades,
+    lng:Float,
+    no_of_edits: Int,
+    owr: String,
+    d_tc: Int,
+    name: String,
+    ctr: String,
+    c_hsid: String,
+    ergy: Int,
+    max_hth: Int,
+    ctr_f: Int,
+    lvl: Int
+  }
+
+  type CoreUpgrades {
+    mods: [CoreMod]
+  }
+
+  type Player {
+    base_level: Int,
+    level_id: Int,
+    core_info_id: Int,
+    stats_id: Int,
+    poi_info_id: Int,
+    social_info_id: Int,
+    uname: String,
+    faction_id: Int,
+    get_core_info: PlayerCores,
+    get_stats_public: PlayerStats,
+    get_poi_info: PlayerPoiInfo,
+    get_faction_details: PlayerFactionInfo
+  }
+
+  type PlayerCores {
+    id: Int,
+    no_of_cores_seeded: Int,
+    owned_cores: String,
+    no_of_bases_destroyed: Int,
+    no_of_cores_destroyed: Int,
+    no_of_cores_captured: Int
+  }
+
+  type PlayerStats {
+    id: Int,
+    total_mods_deployed: Int,
+    nof_of_battles_won: Int,
+    achievements: String,
+    unlocked_skills: String
+  }
+
+  type PlayerPoiInfo {
+    id: Int,
+    no_of_pois_captured: Int
+  }
+
+  type PlayerFactionInfo {
+    id: Int,
+    fac_enum: Int
+  }
 
   type Base {
     faction: Int,
@@ -229,7 +298,7 @@ const typeDefs = gql`
     mx_hth: Int,
     nm: String,
     ownr: String,
-    rings: [[Mod]],
+    rings: [[BaseMod]],
     strngth: Int,
     tc_gen: Boolean,
     tm_gen: Boolean,
@@ -297,7 +366,17 @@ const typeDefs = gql`
     parents: AnyType
   }
 
-  type Mod {
+  type CoreMod {
+    sl_no: Int,
+    m_cd: String,
+    is_lnk: Int,
+    uid: String,
+    hth: Int,
+    max_hth: Int,
+    lvl: Int
+  }
+
+  type BaseMod {
     cd: String,
     hth: Int,
     lvl: Int,
@@ -349,12 +428,9 @@ const resolvers = {
 
       return bm.getBase(args.id)
     },
-    cluster: (parentRequest, args) => {
+    clusterDetail: (parentRequest, args) => {
       if (!args.id && !args.query) throw new Error('Id or Query is needed!')
       return bm.getApiData('/base-cluster-data', {id: args.id, type: args.type || 'simulation'})
-    },
-    screen: (parentRequest, args) => {
-      return {status: 'TODO get screeenshot'}
     },
     search: (parentRequest, args) => {
       return bm.getSearchQuery(args.term, args.faction)
