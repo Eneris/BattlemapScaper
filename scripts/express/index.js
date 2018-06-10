@@ -162,7 +162,8 @@ const typeDefs = gql`
       minLevel: Int,
       maxLevel: Int,
       minHealth: Int,
-      maxHealth: Int
+      maxHealth: Int,
+      lastId: Int
     ): [Base]
     cores(
       latMin: Float!,
@@ -172,7 +173,8 @@ const typeDefs = gql`
       minLevel: Int,
       maxLevel: Int,
       minHealth: Int,
-      maxHealth: Int
+      maxHealth: Int,
+      lastId: Int
     ): AnyType
     mines(
       latMin: Float!,
@@ -182,7 +184,8 @@ const typeDefs = gql`
       minLevel: Int,
       maxLevel: Int,
       minHealth: Int,
-      maxHealth: Int
+      maxHealth: Int,
+      lastId: Int
     ): AnyType
     mineDetail(id: Int, query: String): AnyType
     battleDetail(id: Int, query: String): BattleDetail
@@ -404,13 +407,13 @@ const resolvers = {
       return bm.getBattles()
     },
     bases: (parentResult, args) => {
-      return bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+      return bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
     },
     mines: (parent, args) => {
-      return bm.getMines(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+      return bm.getMines(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
     },
     cores: (parent, args) => {
-      return bm.getCores(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth)
+      return bm.getCores(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
     },
     battleDetail: async (parentRequest, args) => {
       if (!args.id && !args.query) throw new Error('Id or Query is needed!')

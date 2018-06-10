@@ -14,11 +14,6 @@ const {
 module.exports = class Battlemap {
   constructor(credentials) {
     this.page = null
-    this.cache = {
-      battleStringToId: {},
-      battleDetails: {},
-      battleList: []
-    }
   }
 
   async init(credentials) {
@@ -283,8 +278,8 @@ module.exports = class Battlemap {
     })
   }
 
-  async getPagedRequest(endpoint, queryData, dataPathKey, lastIdParamPrefix) {
-    let response = (await this.getApiData(endpoint, queryData))
+  async getPagedRequest(endpoint, queryData, dataPathKey, lastIdParamPrefix, startWithLastId) {
+    let response = (await this.getApiData(endpoint, {...queryData, [`${lastIdParamPrefix}LastID`]: startWithLastId || 0}))
     let mainData = response[dataPathKey]
 
     while (response[dataPathKey].length) {
@@ -295,7 +290,7 @@ module.exports = class Battlemap {
     return mainData
   }
 
-  async getBases(latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+  async getBases(latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
     const params = {
       minLevel,
       maxLevel,
@@ -309,18 +304,18 @@ module.exports = class Battlemap {
     }
 
     if (faction) {
-      return this.getPagedRequest('get-bases', params, 'bases', 'base')
+      return this.getPagedRequest('get-bases', params, 'bases', 'base', lastId)
     }
 
-    const result1 = await this.getPagedRequest('get-bases', {...params, faction: 1}, 'bases', 'base')
-    const result2 = await this.getPagedRequest('get-bases', {...params, faction: 2}, 'bases', 'base')
-    const result3 = await this.getPagedRequest('get-bases', {...params, faction: 3}, 'bases', 'base')
-    const result4 = await this.getPagedRequest('get-bases', {...params, faction: 4}, 'bases', 'base')
+    const result1 = await this.getPagedRequest('get-bases', {...params, faction: 1}, 'bases', 'base', lastId)
+    const result2 = await this.getPagedRequest('get-bases', {...params, faction: 2}, 'bases', 'base', lastId)
+    const result3 = await this.getPagedRequest('get-bases', {...params, faction: 3}, 'bases', 'base', lastId)
+    const result4 = await this.getPagedRequest('get-bases', {...params, faction: 4}, 'bases', 'base', lastId)
 
     return result1.concat(result2).concat(result3).concat(result4)
   }
 
-  async getMines(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+  async getMines(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
     return this.getPagedRequest('get-pois', {
       minLevel,
       maxLevel,
@@ -330,10 +325,10 @@ module.exports = class Battlemap {
         latitude: [latMin, latMax],
         longitude: [lngMin, lngMax]
       }
-    }, 'POIs', 'POI')
+    }, 'POIs', 'POI', lastId)
   }
 
-  async getCores(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100) {
+  async getCores(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
     return this.getPagedRequest('get-cores', {
       minLevel,
       maxLevel,
@@ -343,6 +338,6 @@ module.exports = class Battlemap {
         latitude: [latMin, latMax],
         longitude: [lngMin, lngMax]
       }
-    }, 'cores', 'core')
+    }, 'cores', 'core', lastId)
   }
 }
