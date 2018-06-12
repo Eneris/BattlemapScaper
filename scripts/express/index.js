@@ -505,7 +505,7 @@ const resolvers = {
       }
 
       return cache.getPlayerBaseQuery(args.id)
-    },
+    // },
     }
   }
 }
