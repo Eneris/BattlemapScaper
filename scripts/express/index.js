@@ -14,6 +14,7 @@ const swaggerDocument = YAML.load('./scripts/express/swagger.yml')
 // Firebase & Battlemap
 const { credentials, expressPort, debug } = require('../../config')
 const Battlemap = require('../../libs/battlemap')
+const Cache = require('../../libs/cache')
 const Firebase = require('../../libs/firebase')
 
 // GraphQL
@@ -25,6 +26,7 @@ const { Kind } = require('graphql/language')
 
 const database = Firebase.database()
 const bm = new Battlemap()
+const cache = new Cache()
 const dataRef = database.ref('/data')
 
 // Generic part
@@ -195,6 +197,7 @@ const typeDefs = gql`
     request(operation: String!, method: String, requestData: AnyType): AnyType
     coreDetail(id: Int, query: String): CoreDetail
     player(id: Int, query: String): Player
+    playerBaseUniqueId(id: Int, query: String): String
   }
 
   type Mutation {
@@ -317,7 +320,8 @@ const typeDefs = gql`
     oppoBase: String,
     ownBase: String,
     reservedPower: Int,
-    resolutionTime: String
+    resolutionTime: String,
+    detail(id: Int, query: String): BattleDetail
   }
 
   type BattleDetail {
@@ -329,12 +333,14 @@ const typeDefs = gql`
     is_cancelled: Int,
     is_done: Int,
     oppoBaseDetails: Base,
+    oppoBaseDetails2: BaseDetail, 
     oppoClusterStrength: Int,
     oppo_base: String,
     oppo_base_fac_enum: Int,
     oppo_base_final_profit: Int,
     oppo_base_name: String,
     ownBaseDetails: Base,
+    ownBaseDetails2: BaseDetail, 
     ownClusterStrength: Int,
     own_base: String,
     own_base_fac_enum: Int,
@@ -381,10 +387,10 @@ const typeDefs = gql`
 
   type BaseMod {
     cd: String,
+    r_no: String,
     hth: Int,
-    lvl: Int,
-    mx_hth: Int,
-    r_no: String
+    max_hth: Int,
+    lvl: Int
   }
 
   type BaseLink {
@@ -406,15 +412,42 @@ const resolvers = {
     battles: (parentResult, args) => {
       return bm.getBattles()
     },
-    bases: (parentResult, args) => {
-      return bm.getBases(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
-    },
-    mines: (parent, args) => {
-      return bm.getMines(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
-    },
-    cores: (parent, args) => {
-      return bm.getCores(args.latMin, args.lngMin, args.latMax, args.lngMax, args.faction, args.minLevel, args.maxLevel, args.minHealth, args.maxHealth, args.lastId)
-    },
+    bases: (parentResult, args) => bm.getBases(
+      args.latMin,
+      args.lngMin,
+      args.latMax,
+      args.lngMax,
+      args.faction,
+      args.minLevel,
+      args.maxLevel,
+      args.minHealth,
+      args.maxHealth,
+      args.lastId
+    ),
+    mines: (parent, args) => bm.getMines(
+      args.latMin,
+      args.lngMin,
+      args.latMax,
+      args.lngMax,
+      args.faction,
+      args.minLevel,
+      args.maxLevel,
+      args.minHealth,
+      args.maxHealth,
+      args.lastId
+    ),
+    cores: (parent, args) => bm.getCores(
+      args.latMin,
+      args.lngMin,
+      args.latMax,
+      args.lngMax,
+      args.faction,
+      args.minLevel,
+      args.maxLevel,
+      args.minHealth,
+      args.maxHealth,
+      args.lastId
+    ),
     battleDetail: async (parentRequest, args) => {
       if (!args.id && !args.query) throw new Error('Id or Query is needed!')
       if (!args.id && args.query) {
@@ -464,15 +497,21 @@ const resolvers = {
       }
 
       return bm.getApiData('/player-public-profile', {id: args.id})
+    },
+    playerBaseUniqueId: async (parent, args) => {
+      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
+      if (!args.id && args.query) {
+        args.id = await bm.getIdFromQuery(args.query)
+      }
+
+      return cache.getPlayerBaseQuery(args.id)
+    },
     }
   }
 }
 
 // Put together a schema
-const schema = makeExecutableSchema({
-  typeDefs,
-  resolvers
-})
+const schema = makeExecutableSchema({ typeDefs, resolvers })
 
 // The GraphQL endpoint
 app.use('/graphql', bodyParser.json(), graphqlExpress({ schema }))
@@ -482,6 +521,7 @@ app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
 
 // Main inicialization
 const main = async () => {
+  await cache.init()
   await bm.init(credentials)
   app.listen(expressPort, () => console.log('Example app listening on port', expressPort))
 }
