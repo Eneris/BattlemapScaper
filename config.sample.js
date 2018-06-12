@@ -13,5 +13,12 @@ module.exports = {
     clientEmail: process.env.FB_CLIENT_EMAIL || '',
     privateKey: process.env.FB_PRIVATE_KEY || ''
   },
-  expressPort: 8080
+  mongoDb: {
+    url: process.env.MONGO_URL || '',
+    port: 27017,
+    database: process.env.MONGO_DATABASE || '',
+    user: process.env.MONGO_USER || '',
+    password: process.env.MONGO_PASSWORD || ''
+  },
+  expressPort: process.env.PORT || 8080
 }
