@@ -389,7 +389,7 @@ const typeDefs = gql`
     cd: String,
     r_no: String,
     hth: Int,
-    max_hth: Int,
+    mx_hth: Int,
     lvl: Int
   }
 
