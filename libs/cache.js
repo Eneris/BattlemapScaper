@@ -16,7 +16,6 @@ module.exports = class BattleMapCache {
   async init() {
     /* this.mongoClient: MongoClient */
     const authString = `mongodb://${config.user}:${config.password}@${config.url}:${config.port}/?authSource=deltat`
-    console.log(authString)
     this.mongoClient = await MongoClient.connect(authString)
     this.db = this.mongoClient.db('deltat')
     console.log('DB connect done')
