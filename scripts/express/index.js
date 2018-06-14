@@ -179,10 +179,7 @@ const resolvers = {
     detail: (parent, args) => bm.getBattleDetail(args)
   },
   PlayerDetail: {
-    base: async (parent, args, context, info) => {
-      console.log(parent, args, context, info)
-      return bm.getPlayerBase({id: parent.id})
-    },
+    base: async (parent, args, context, info) => bm.getPlayerBase({id: parent.id}),
     base_unique_id: (parent, args, context, info) => bm.getPlayerBaseUniqueId({id: parent.id})
   },
   AnyType: AnyType

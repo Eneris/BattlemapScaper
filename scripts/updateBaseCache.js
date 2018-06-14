@@ -17,12 +17,11 @@ const fetchGraphql = ({query, variables}) => fetch('http://deltat.eneris.wtf/gra
 }).then(data => data.json())
 
 const cache = new Cache()
-const bm = new Battlemap()
 
 const queryPlayer = async (id) => (await fetchGraphql({
   query: gql`
-    query player($id: Int!) {
-      player(id: $id) {
+    query player(args: EntityInput!) {
+      player(args: $args) {
         base_level
         level_id
         core_info_id
@@ -57,13 +56,15 @@ const queryPlayer = async (id) => (await fetchGraphql({
       }
     }
   `,
-  variables: { id }
+  variables: {
+    args: { id }
+  }
 })).data.player
 
 const queryBaseDetail = async (id) => (await fetchGraphql({
   query: gql`
-    query baseDetail($id: Int!) {
-      baseDetail(id: $id) {
+    query baseDetail($args: EntityInput!) {
+      baseDetail(args: $args) {
         av_pwr
         bf
         bs_hsid
@@ -101,32 +102,21 @@ const queryBaseDetail = async (id) => (await fetchGraphql({
       }
     }
   `,
-  variables: { id }
+  variables: {
+    args: { id }
+  }
 })).data.baseDetail
 
 const main = async () => {
   await cache.init()
-  // await bm.init(credentials)
   const lastBaseId = await cache.getLastId('bases')
 
   console.log('Last base id found in cache', lastBaseId)
 
   let basesList = (await fetchGraphql({
     query: gql`
-      query bases(
-        $latMin: Float!,
-        $lngMin: Float!,
-        $latMax: Float!,
-        $lngMax: Float!,
-        $lastId: Int
-      ) {
-        bases(
-          latMin: $latMin,
-          lngMin: $lngMin,
-          latMax: $latMax,
-          lngMax: $lngMax,
-          lastId: $lastId
-        ) {
+      query bases($args: MapSearchInput!) {
+        bases(args: $args) {
           faction
           health
           id
@@ -139,15 +129,15 @@ const main = async () => {
       }      
     `,
     variables: {
-      latMin: -200,
-      lngMin: -200,
-      latMax: 200,
-      lngMax: 200,
-      lastId: lastBaseId
+      args: {
+        latMin: -200,
+        lngMin: -200,
+        latMax: 200,
+        lngMax: 200,
+        lastId: lastBaseId
+      }
     }
   })).data.bases
-
-  //let basesList = await bm.getBases(-200, -200, 200, 200, 0, 0, 5, 0, 100, lastBaseId)
 
   console.log('Bases found', basesList.length)
 
@@ -171,7 +161,6 @@ const main = async () => {
   }
 
   await cache.exit()
-  // await bm.exit()
   return true
 }
 
