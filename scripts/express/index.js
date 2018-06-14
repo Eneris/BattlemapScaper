@@ -14,19 +14,16 @@ const swaggerDocument = YAML.load('./scripts/express/swagger.yml')
 // Firebase & Battlemap
 const { credentials, expressPort, debug } = require('../../config')
 const Battlemap = require('../../libs/battlemap')
-const Cache = require('../../libs/cache')
 const Firebase = require('../../libs/firebase')
 
 // GraphQL
 const { graphqlExpress, graphiqlExpress } = require('apollo-server-express')
 const { makeExecutableSchema } = require('graphql-tools')
-const gql = require('graphql-tag')
 const { GraphQLScalarType } = require('graphql')
 const { Kind } = require('graphql/language')
 
 const database = Firebase.database()
 const bm = new Battlemap()
-const cache = new Cache()
 const dataRef = database.ref('/data')
 
 // Generic part
@@ -68,7 +65,7 @@ app.get('/getBase/:id', checkIdParam, async (req, res) => {
   if (debug) console.log('REQUEST: getBase', id)
 
   try {
-    const data = await bm.getBase(id)
+    const data = await bm.getBaseDetail({id})
     dataRef.child('bases').child(id).set(data)
     res.json(data)
   } catch (err) {
@@ -138,6 +135,8 @@ app.post('/reauth', (req, res) => {
 })
 
 // GraphQL part
+const typeDefs = require('./graphqlTypes')
+
 const AnyType = new GraphQLScalarType({
   name: 'AnyType',
   description: 'Here can be about anything. Mostly TODO structures',
@@ -152,133 +151,41 @@ const AnyType = new GraphQLScalarType({
   }
 })
 
-const typeDefs = require('./graphqlTypes')
-
 // The resolvers
 const resolvers = {
-  AnyType: AnyType,
   Query: {
-    battles: (parentResult, args) => {
-      return bm.getBattles()
-    },
-    bases: (parentResult, args) => bm.getBases(
-      args.latMin,
-      args.lngMin,
-      args.latMax,
-      args.lngMax,
-      args.faction,
-      args.minLevel,
-      args.maxLevel,
-      args.minHealth,
-      args.maxHealth,
-      args.lastId
-    ),
-    mines: (parent, args) => bm.getMines(
-      args.latMin,
-      args.lngMin,
-      args.latMax,
-      args.lngMax,
-      args.faction,
-      args.minLevel,
-      args.maxLevel,
-      args.minHealth,
-      args.maxHealth,
-      args.lastId
-    ),
-    cores: (parent, args) => bm.getCores(
-      args.latMin,
-      args.lngMin,
-      args.latMax,
-      args.lngMax,
-      args.faction,
-      args.minLevel,
-      args.maxLevel,
-      args.minHealth,
-      args.maxHealth,
-      args.lastId
-    ),
-    battleDetail: async (parentRequest, args) => {
-      if (parentRequest) {
-        if (parentRequest.id) args.id = parentRequest.id
-      }
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getApiData('/get-battle-details', {battleID: args.id})
-    },
-    baseDetail: async (parentRequest, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getBase(args.id)
-    },
-    clusterDetail: (parentRequest, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      return bm.getApiData('/base-cluster-data', {id: args.id, type: args.type || 'simulation'})
-    },
-    search: (parentRequest, args) => {
-      return bm.getSearchQuery(args.term, args.faction)
-    },
-    request: (parentRequest, args) => {
-      return bm.getApiData(args.operation, args.requestData, args.method)
-    },
-    coreDetail: async (parent, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getApiData('/core-profile', {id: args.id}).then(data => data.dt)
-    },
-    mineDetail: async (parent, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getApiData('/poi-profile', {id: args.id}).then(data => data.dt)
-    },
-    player: async (parent, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getApiData('/player-public-profile', {id: args.id})
-    },
-    playerBaseUniqueId: async (parent, args) => {
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return cache.getPlayerBaseQuery(args.id)
-    }
+    battles: (parentResult, args) => bm.getBattles(),
+    bases: (parentResult, {args}) => bm.getBases(args),
+    mines: (parentResult, {args}) => bm.getMines(args),
+    cores: (parentResult, {args}) => bm.getCores(args),
+    battleDetail: (parent, {args}) => bm.getBattleDetail(args),
+    baseDetail: (parent, {args}) => bm.getBaseDetail(args),
+    clusterDetail: (parent, {args}) => bm.getClusterDetail(args),
+    coreDetail: (parent, {args}) => bm.getCoreDetail(args),
+    mineDetail: (parent, {args}) => bm.getMineDetail(args),
+    playerDetail: (parent, {args}) => bm.getPlayerDetail(args),
+    search: (parent, args) => bm.getSearchQuery(args.term, args.faction),
+    request: (parent, args) => bm.getApiData(args.operation, args.requestData, args.method),
+    playerBaseUniqueId: (parent, {args}) => bm.getPlayerBaseUniqueId(args)
+  },
+  Mutation: {
+    reauth: () => bm.reauth()
   },
   BattleDetail: {
-    async oppoBaseDetails(parentRequest, args) {
-      if (parentRequest.oppo_base) args.id = parseInt(parentRequest.oppo_base)
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getBase(args.id)
+    oppoBaseDetails: (parent) => bm.getBaseDetail({id: parent.oppo_base}),
+    ownBaseDetails: (parent) => bm.getBaseDetail({id: parent.own_base})
+  },
+  Battle: {
+    detail: (parent, args) => bm.getBattleDetail(args)
+  },
+  PlayerDetail: {
+    base: async (parent, args, context, info) => {
+      console.log(parent, args, context, info)
+      return bm.getPlayerBase({id: parent.id})
     },
-    async ownBaseDetails(parentRequest, args) {
-      if (parentRequest.own_base) args.id = parseInt(parentRequest.own_base)
-      if (!args.id && !args.query) throw new Error('Id or Query is needed!')
-      if (!args.id && args.query) {
-        args.id = await bm.getIdFromQuery(args.query)
-      }
-
-      return bm.getBase(args.id)
-    }
-  }
+    base_unique_id: (parent, args, context, info) => bm.getPlayerBaseUniqueId({id: parent.id})
+  },
+  AnyType: AnyType
 }
 
 // Put together a schema
@@ -291,11 +198,9 @@ app.use('/graphql', bodyParser.json(), graphqlExpress({ schema }))
 app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
 
 // Main inicialization
-const main = async () => {
-  await cache.init()
+const main = (async () => {
   await bm.init(credentials)
   app.listen(expressPort, () => console.log('Example app listening on port', expressPort))
-}
-
-main()
+})()
+  .then(console.log)
   .catch(console.error)

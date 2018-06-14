@@ -3,49 +3,18 @@ const gql = require('graphql-tag')
 module.exports = gql`
   type Query {
     battles: [Battle]
-    bases(
-      latMin: Float!,
-      lngMin: Float!,
-      latMax: Float!,
-      lngMax: Float!,
-      faction: Int,
-      minLevel: Int,
-      maxLevel: Int,
-      minHealth: Int,
-      maxHealth: Int,
-      lastId: Int
-    ): [Base]
-    cores(
-      latMin: Float!,
-      lngMin: Float!,
-      latMax: Float!,
-      lngMax: Float!,
-      minLevel: Int,
-      maxLevel: Int,
-      minHealth: Int,
-      maxHealth: Int,
-      lastId: Int
-    ): AnyType
-    mines(
-      latMin: Float!,
-      lngMin: Float!,
-      latMax: Float!,
-      lngMax: Float!,
-      minLevel: Int,
-      maxLevel: Int,
-      minHealth: Int,
-      maxHealth: Int,
-      lastId: Int
-    ): AnyType
-    mineDetail(id: Int, query: String): AnyType
-    battleDetail(id: Int, query: String): BattleDetail
-    baseDetail(id: Int, query: String): BaseDetail
-    clusterDetail(id: Int, query: String, type: String): ClusterDetail
-    search(term: String!, faction: Int): [AnyType]
-    request(operation: String!, method: String, requestData: AnyType): AnyType
-    coreDetail(id: Int, query: String): CoreDetail
-    player(id: Int, query: String): Player
-    playerBaseUniqueId(id: Int, query: String): String
+    bases(args: MapSearchInput): [Base]
+    cores(args: MapSearchInput): AnyType
+    mines(args: MapSearchInput): AnyType
+    mineDetail(args: EntityInput): AnyType
+    battleDetail(args: EntityInput): BattleDetail
+    baseDetail(args: EntityInput): BaseDetail
+    clusterDetail(args: EntityInput, type: String): ClusterDetail
+    playerDetail(args: EntityInput): PlayerDetail
+    coreDetail(args: EntityInput): CoreDetail
+    search(term: String, faction: Int): [AnyType]
+    request(operation: String, method: String, requestData: AnyType): AnyType
+    playerBaseUniqueId(args: EntityInput): String
   }
 
   type Mutation {
@@ -53,6 +22,24 @@ module.exports = gql`
   }
 
   scalar AnyType
+
+  input MapSearchInput {
+    latMin: Float!,
+    lngMin: Float!,
+    latMax: Float!,
+    lngMax: Float!,
+    faction: Int,
+    minLevel: Int,
+    maxLevel: Int,
+    minHealth: Int,
+    maxHealth: Int,
+    lastId: Int
+  }
+
+  input EntityInput {
+    id: Int,
+    query: String
+  }
 
   type CoreDetail {
     c_id: Int,
@@ -82,7 +69,8 @@ module.exports = gql`
     mods: [CoreMod]
   }
 
-  type Player {
+  type PlayerDetail {
+    id: Int,
     base_level: Int,
     level_id: Int,
     core_info_id: Int,
@@ -94,7 +82,9 @@ module.exports = gql`
     get_core_info: PlayerCores,
     get_stats_public: PlayerStats,
     get_poi_info: PlayerPoiInfo,
-    get_faction_details: PlayerFactionInfo
+    get_faction_details: PlayerFactionInfo,
+    base: BaseDetail,
+    base_unique_id: String
   }
 
   type PlayerCores {
@@ -169,7 +159,7 @@ module.exports = gql`
     ownBase: String,
     reservedPower: Int,
     resolutionTime: String,
-    detail(id: Int, query: String): BattleDetail
+    detail: BattleDetail
   }
 
   type BattleDetail {

@@ -11,12 +11,16 @@ const {
   delay
 } = require('./functions')
 
+const Cache = require('./cache')
+
 module.exports = class Battlemap {
   constructor(credentials) {
     this.page = null
+    this.cache = new Cache()
   }
 
   async init(credentials) {
+    await this.cache.init()
     this.credentials = credentials
 
     this.instance = await puppeteer.launch({
@@ -245,15 +249,6 @@ module.exports = class Battlemap {
     return this.getApiData('/search', { term: queryString, faction: faction }, 'get')
   }
 
-  async getBase(id) {
-    const baseData = (await this.getApiData('/base-profile', { id })).dt
-
-    return {
-      ...baseData,
-      rings: Object.values(baseData.rings)
-    }
-  }
-
   // Predefined queries
   getBattles() {
     return this.getApiData('get-battles', { factions: [1, 2, 3, 4], resolution: 0 })
@@ -339,5 +334,95 @@ module.exports = class Battlemap {
         longitude: [lngMin, lngMax]
       }
     }, 'cores', 'core', lastId)
+  }
+
+  async getBaseDetail({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Id or Query is needed!')
+
+    const baseData = (await this.getApiData('/base-profile', { id })).dt
+
+    return {
+      ...baseData,
+      rings: Object.values(baseData.rings)
+    }
+  }
+
+  async getBattleDetail({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Base not found')
+
+    return this.getApiData('/get-battle-details', {battleID: id})
+  }
+
+  async getClusterDetail({id, query, type}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    type = type || 'simulation'
+
+    if (!id) throw new Error('Base not found')
+
+    return this.getApiData('/base-cluster-data', {id, type})
+  }
+
+  async getCoreDetail({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Core not found')
+
+    return this.getApiData('/core-profile', {id}).then(data => data.dt)
+  }
+
+  async getMineDetail({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Mine not found')
+
+    return this.getApiData('/poi-profile', {id}).then(data => data.dt)
+  }
+
+  async getPlayerDetail({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Player not found')
+
+    return {
+      id,
+      ...(await this.getApiData('/player-public-profile', {id}))
+    }
+  }
+
+  async getPlayerBaseUniqueId({id, query}) {
+    if (!id && query) {
+      id = await this.getIdFromQuery(query)
+    }
+
+    if (!id) throw new Error('Player not found')
+
+    return this.cache.getPlayerBaseQuery(id)
+  }
+
+  async getPlayerBase({id, query}) {
+    const baseUniqueId = await this.getPlayerBaseUniqueId({id, query})
+
+    if (!baseUniqueId) {
+      throw new Error('Player base not found')
+    }
+
+    return this.getBaseDetail({query: baseUniqueId})
   }
 }
