@@ -1,6 +1,6 @@
 const { credentials } = require('../config')
 const Battlemap = require('../libs/battlemap')
-const Cache = require('../libs/mongCache')
+const Cache = require('../libs/cache')
 const fs = require('fs')
 const path = require('path')
 

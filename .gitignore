@@ -5,3 +5,4 @@ config.js
 /.debug
 /.tmp
 .userData/
+battlemap.code-workspace
