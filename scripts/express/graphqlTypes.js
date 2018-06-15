@@ -2,7 +2,7 @@ const gql = require('graphql-tag')
 
 module.exports = gql`
   type Query {
-    battles: [Battle]
+    battles(factions: [Int], resolution: Int): [Battle]
     bases(args: MapSearchInput): [Base]
     cores(args: MapSearchInput): AnyType
     mines(args: MapSearchInput): AnyType
@@ -19,6 +19,7 @@ module.exports = gql`
 
   type Mutation {
     reauth: Int
+    sendMessage(message: String!, global: Boolean): Boolean
   }
 
   scalar AnyType

@@ -250,8 +250,8 @@ module.exports = class Battlemap {
   }
 
   // Predefined queries
-  getBattles() {
-    return this.getApiData('get-battles', { factions: [1, 2, 3, 4], resolution: 0 })
+  getBattles({resolution = 24, factions = [1, 2, 3, 4]}) {
+    return this.getApiData('get-battles', { factions, resolution })
     /* return this.page.evaluate(function() {
       return window.battleLogAPIController.getBattles({})
     }) */
@@ -424,5 +424,12 @@ module.exports = class Battlemap {
     }
 
     return this.getBaseDetail({query: baseUniqueId})
+  }
+
+  async sendMessage({message, global = true}) {
+    return this.getApiData('/insert-message', {
+      message,
+      global: global ? 1 : 0
+    })
   }
 }

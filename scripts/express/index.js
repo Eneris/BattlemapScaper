@@ -154,7 +154,7 @@ const AnyType = new GraphQLScalarType({
 // The resolvers
 const resolvers = {
   Query: {
-    battles: (parentResult, args) => bm.getBattles(),
+    battles: (parentResult, args) => bm.getBattles(args),
     bases: (parentResult, {args}) => bm.getBases(args),
     mines: (parentResult, {args}) => bm.getMines(args),
     cores: (parentResult, {args}) => bm.getCores(args),
@@ -169,14 +169,15 @@ const resolvers = {
     playerBaseUniqueId: (parent, {args}) => bm.getPlayerBaseUniqueId(args)
   },
   Mutation: {
-    reauth: () => bm.reauth()
+    reauth: () => bm.reauth(),
+    sendMessage: (_, args) => bm.sendMessage(args)
   },
   BattleDetail: {
     oppoBaseDetails: (parent) => bm.getBaseDetail({id: parent.oppo_base}),
     ownBaseDetails: (parent) => bm.getBaseDetail({id: parent.own_base})
   },
   Battle: {
-    detail: (parent, args) => bm.getBattleDetail(args)
+    detail: (parent, args) => parent.finished ? null : bm.getBattleDetail(args)
   },
   PlayerDetail: {
     base: async (parent, args, context, info) => bm.getPlayerBase({id: parent.id}),
