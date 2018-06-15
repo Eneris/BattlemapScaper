@@ -104,7 +104,7 @@ app.get('/getBattle/:id', checkIdParam, async (req, res) => {
 
 app.get('/getBattles', (req, res) => {
   if (debug) console.log('REQUEST: getBattles')
-  return bm.getBattles()
+  return bm.getBattles({})
     .then(data => {
       dataRef.child('battles').set(data)
       return res.json(data)
