@@ -177,7 +177,7 @@ const resolvers = {
     ownBaseDetails: (parent) => bm.getBaseDetail({id: parent.own_base})
   },
   Battle: {
-    detail: (parent, args) => parent.finished ? null : bm.getBattleDetail(args)
+    detail: (parent, args) => parent.finished ? null : bm.getBattleDetail({id: parent.id})
   },
   PlayerDetail: {
     base: async (parent, args, context, info) => bm.getPlayerBase({id: parent.id}),
