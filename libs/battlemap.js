@@ -250,7 +250,7 @@ module.exports = class Battlemap {
   }
 
   // Predefined queries
-  getBattles({resolution = 24, factions = [1, 2, 3, 4]}) {
+  getBattles({resolution = 96, factions = [1, 2, 3, 4]}) {
     return this.getApiData('get-battles', { factions, resolution })
     /* return this.page.evaluate(function() {
       return window.battleLogAPIController.getBattles({})
