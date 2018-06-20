@@ -285,7 +285,7 @@ module.exports = class Battlemap {
     return mainData
   }
 
-  async getBases(latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
+  async getBases({latMin, lngMin, latMax, lngMax, faction = 0, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId}) {
     const params = {
       minLevel,
       maxLevel,
@@ -310,7 +310,7 @@ module.exports = class Battlemap {
     return result1.concat(result2).concat(result3).concat(result4)
   }
 
-  async getMines(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
+  async getMines({latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId}) {
     return this.getPagedRequest('get-pois', {
       minLevel,
       maxLevel,
@@ -323,7 +323,7 @@ module.exports = class Battlemap {
     }, 'POIs', 'POI', lastId)
   }
 
-  async getCores(latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId) {
+  async getCores({latMin, lngMin, latMax, lngMax, minLevel = 0, maxLevel = 5, minHealth = 0, maxHealth = 100, lastId}) {
     return this.getPagedRequest('get-cores', {
       minLevel,
       maxLevel,

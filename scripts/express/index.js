@@ -154,19 +154,19 @@ const AnyType = new GraphQLScalarType({
 // The resolvers
 const resolvers = {
   Query: {
-    battles: (parentResult, args) => bm.getBattles(args),
-    bases: (parentResult, {args}) => bm.getBases(args),
-    mines: (parentResult, {args}) => bm.getMines(args),
-    cores: (parentResult, {args}) => bm.getCores(args),
-    battleDetail: (parent, {args}) => bm.getBattleDetail(args),
-    baseDetail: (parent, {args}) => bm.getBaseDetail(args),
-    clusterDetail: (parent, {args}) => bm.getClusterDetail(args),
-    coreDetail: (parent, {args}) => bm.getCoreDetail(args),
-    mineDetail: (parent, {args}) => bm.getMineDetail(args),
-    playerDetail: (parent, {args}) => bm.getPlayerDetail(args),
-    search: (parent, args) => bm.getSearchQuery(args.term, args.faction),
-    request: (parent, args) => bm.getApiData(args.operation, args.requestData, args.method),
-    playerBaseUniqueId: (parent, {args}) => bm.getPlayerBaseUniqueId(args)
+    battles: (_, args) => bm.getBattles(args),
+    bases: (_, {args}) => bm.getBases(args),
+    mines: (_, {args}) => bm.getMines(args),
+    cores: (_, {args}) => bm.getCores(args),
+    battleDetail: (_, {args}) => bm.getBattleDetail(args),
+    baseDetail: (_, {args}) => bm.getBaseDetail(args),
+    clusterDetail: (_, {args}) => bm.getClusterDetail(args),
+    coreDetail: (_, {args}) => bm.getCoreDetail(args),
+    mineDetail: (_, {args}) => bm.getMineDetail(args),
+    playerDetail: (_, {args}) => bm.getPlayerDetail(args),
+    search: (_, args) => bm.getSearchQuery(args.term, args.faction),
+    request: (_, args) => bm.getApiData(args.operation, args.requestData, args.method),
+    playerBaseUniqueId: (_, {args}) => bm.getPlayerBaseUniqueId(args)
   },
   Mutation: {
     reauth: () => bm.reauth(),
