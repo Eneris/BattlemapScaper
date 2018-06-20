@@ -47,7 +47,7 @@ module.exports = gql`
     c_b: [CoreLink],
     p_g: Int,
     cf: Int,
-    hth: Int,
+    hth: Float,
     edit_lock_time: Int,
     _lng: Float,
     _ltd: Float,
@@ -135,7 +135,7 @@ module.exports = gql`
     cr_lnks: [CoreLink],
     cr_nm: String,
     del: Boolean,
-    hth: Int,
+    hth: Float,
     lat: Float,
     lng: Float,
     lvl: Int,
@@ -217,7 +217,7 @@ module.exports = gql`
     m_cd: String,
     is_lnk: Int,
     uid: String,
-    hth: Int,
+    hth: Float,
     max_hth: Int,
     lvl: Int
   }
@@ -225,7 +225,7 @@ module.exports = gql`
   type BaseMod {
     cd: String,
     r_no: String,
-    hth: Int,
+    hth: Float,
     mx_hth: Int,
     lvl: Int
   }
