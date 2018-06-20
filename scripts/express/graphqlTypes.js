@@ -117,7 +117,7 @@ module.exports = gql`
 
   type Base {
     faction: Int,
-    health: Int,
+    health: Float,
     id: Int,
     latitude: Float,
     level_id: Int,
