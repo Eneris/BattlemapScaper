@@ -20,8 +20,8 @@ const cache = new Cache()
 
 const queryPlayer = async (id) => (await fetchGraphql({
   query: gql`
-    query player(args: EntityInput!) {
-      player(args: $args) {
+    query player($args: EntityInput!) {
+      playerDetail(args: $args) {
         base_level
         level_id
         core_info_id
@@ -59,7 +59,7 @@ const queryPlayer = async (id) => (await fetchGraphql({
   variables: {
     args: { id }
   }
-})).data.player
+})).data.playerDetail
 
 const queryBaseDetail = async (id) => (await fetchGraphql({
   query: gql`
