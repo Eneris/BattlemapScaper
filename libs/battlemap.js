@@ -352,11 +352,26 @@ module.exports = class Battlemap {
   }
 
   async getBattleDetail({id, query}) {
-    if (!id && query) {
-      id = await this.getIdFromQuery(query)
+    const searchData = (!id && query) ? await this.getSearchQuery(query) : null
+    if (searchData) {
+      if (searchData.is_done) {
+        throw new Error('Not possible to query details... Battle has finished')
+      }
+
+      id = searchData.id
     }
 
-    if (!id) throw new Error('Base not found')
+    if (!id) throw new Error('Battle not found')
+
+    if (!searchData) {
+      const battles = await this.getBattles({resolution: 0})
+      const battle = battles.find(item => item.id === id)
+      if (!battle) {
+        throw new Error('Battle not found')
+      } else if (battle.finished) {
+        throw new Error('Not possible to query details... Battle has finished')
+      }
+    }
 
     return this.getApiData('/get-battle-details', {battleID: id})
   }
