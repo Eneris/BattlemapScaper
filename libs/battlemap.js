@@ -360,7 +360,7 @@ module.exports = class Battlemap {
 
       id = searchData[0].id
     } else {
-      const battles = await this.getBattles()
+      const battles = await this.getBattles({})
       const battle = battles.find(item => item.id === id)
       console.log('Found', battles.map(item => item.id), battle)
       if (!battle) {
