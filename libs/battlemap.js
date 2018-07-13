@@ -360,16 +360,17 @@ module.exports = class Battlemap {
 
       id = searchData[0].id
     } else {
-      const battles = await this.getBattles({resolution: 0})
+      const battles = await this.getBattles()
       const battle = battles.find(item => item.id === id)
+      console.log('Found', battles.map(item => item.id), battle)
       if (!battle) {
-        throw new Error('Battle not found')
+        throw new Error('Battle not found or is already finished')
       } else if (battle.finished) {
         throw new Error('Not possible to query details... Battle has finished')
       }
     }
 
-    if (!id) throw new Error('Battle not found')    
+    if (!id) throw new Error('Battle not found')
 
     return this.getApiData('/get-battle-details', {battleID: id})
   }
