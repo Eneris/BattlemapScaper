@@ -6,15 +6,9 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
 
-// Swagger
-const swaggerUi = require('swagger-ui-express')
-const YAML = require('yamljs')
-const swaggerDocument = YAML.load('./scripts/express/swagger.yml')
-
 // Firebase & Battlemap
 const { credentials, expressPort, debug } = require('../../config')
 const Battlemap = require('../../libs/battlemap')
-const Firebase = require('../../libs/firebase')
 
 // GraphQL
 const { graphqlExpress, graphiqlExpress } = require('apollo-server-express')
@@ -22,9 +16,7 @@ const { makeExecutableSchema } = require('graphql-tools')
 const { GraphQLScalarType } = require('graphql')
 const { Kind } = require('graphql/language')
 
-const database = Firebase.database()
 const bm = new Battlemap()
-const dataRef = database.ref('/data')
 
 // Generic part
 app.use(bodyParser.json())
@@ -37,80 +29,7 @@ app.use(function(error, req, res, next) {
   next()
 })
 
-// Swagger init
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
-
 // API part
-const checkIdParam = (req, res, next) => {
-  const id = req.params.id
-
-  if (String(id).match(/[a-zA-Z]/)) {
-    console.log('Have to search for ID')
-    bm.getIdFromQuery(id)
-      .then(id => {
-        console.log('Found id', id)
-        req.queryDataId = id
-      })
-      .then(() => next())
-      .catch(err => res.status(err.code || 400).json({error: err.message}))
-  } else {
-    req.queryDataId = id
-    next()
-  }
-}
-
-app.get('/getBase/:id', checkIdParam, async (req, res) => {
-  let id = req.queryDataId
-
-  if (debug) console.log('REQUEST: getBase', id)
-
-  try {
-    const data = await bm.getBaseDetail({id})
-    dataRef.child('bases').child(id).set(data)
-    res.json(data)
-  } catch (err) {
-    return res.status(err.code || 500).json({error: err.message})
-  }
-})
-
-app.get('/getCluster/:id/:type?', checkIdParam, async (req, res) => {
-  let id = req.queryDataId
-  const type = req.params.type || 'simulation'
-
-  if (debug) console.log('REQUEST: getCluster', id, type)
-
-  try {
-    const data = await bm.getApiData('/base-cluster-data', {id, type})
-    dataRef.child('clusters').child(id).set(data)
-    res.json(data)
-  } catch (err) {
-    return res.status(err.code || 500).json({error: err.message})
-  }
-})
-
-app.get('/getBattle/:id', checkIdParam, async (req, res) => {
-  let id = req.queryDataId
-
-  if (debug) console.log('REQUEST: getCluster', id)
-
-  try {
-    const data = await bm.getApiData('/get-battle-details', {battleID: id})
-    dataRef.child('battleDetails').child(id).set(data)
-    res.json(data)
-  } catch (err) {
-    return res.status(err.code || 500).json({error: err.message})
-  }
-})
-
-app.get('/getBattles', (req, res) => {
-  if (debug) console.log('REQUEST: getBattles')
-  return bm.getBattles({})
-    .then(data => {
-      dataRef.child('battles').set(data)
-      return res.json(data)
-    })
-    .catch(err => res.status(err.code || 500).json({error: err.message}))
-})
 
 app.get('/getScreen', (req, res) => {
   if (debug) console.log('REQUEST: getScreen')
@@ -129,7 +48,7 @@ app.post('/getRequest', (req, res) => {
 
 app.post('/reauth', (req, res) => {
   if (debug) console.log('REQUEST: reauth')
-  return bm.login(credentials)
+  return bm.init(credentials)
     .then(data => res.json(data))
     .catch(err => res.status(err.code || 500).json({error: err.message}))
 })
@@ -198,7 +117,7 @@ app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
 // Main inicialization
 const main = (async () => {
   await bm.init(credentials)
-  app.listen(expressPort, () => console.log('Example app listening on port', expressPort))
+  app.listen(expressPort, () => console.log('Listening on port', expressPort))
 })()
   .then(console.log)
   .catch(console.error)
