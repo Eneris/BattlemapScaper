@@ -15,13 +15,32 @@ const Cache = require('./cache')
 
 module.exports = class Battlemap {
   constructor(credentials) {
+    this.instance = null
     this.page = null
-    this.cache = new Cache()
+    this.cache = null
+  }
+
+  async exit() {
+    if(this.restartTimer) {
+      this.restartTimer = clearTimeout(this.restartTimer)
+    }
+
+    if (this.instance) return this.instance.close()
+
+    return Promise.resolve()
   }
 
   async init(credentials) {
-    await this.cache.init()
-    this.credentials = credentials
+    console.log('Init started')
+
+    if (!this.cache) {
+      this.cache = new Cache()
+      await this.cache.init()
+    }
+
+    if (credentials) this.credentials = credentials
+
+    await this.exit()
 
     this.instance = await puppeteer.launch({
       userDataDir: './.userData',
@@ -62,13 +81,12 @@ module.exports = class Battlemap {
       await this.login(credentials)
     }
 
+    console.log('Setting up periodic restarter')
+    this.restartTimer = setTimeout(() => this.init(), 24 * 60 * 60 * 1000)
+
     if (debug) console.log('Init done')
 
     return this.page
-  }
-
-  async exit() {
-    return this.instance.close()
   }
 
   // Auth section
