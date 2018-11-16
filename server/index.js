@@ -81,7 +81,7 @@ const resolvers = {
     playerBaseUniqueId: (_, {args}) => bm.getPlayerBaseUniqueId(args)
   },
   Mutation: {
-    restart: () => bm.init(),
+    restart: () => bm.init().then(() => 'success').catch(() => 'failure'),
     sendMessage: (_, args) => bm.sendMessage(args)
   },
   BattleDetail: {
