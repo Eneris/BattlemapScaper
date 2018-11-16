@@ -18,7 +18,7 @@ module.exports = gql`
   }
 
   type Mutation {
-    reauth: Int
+    restart: Int
     sendMessage(message: String!, global: Boolean): Boolean
   }
 
