@@ -9,7 +9,7 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "express": "node scripts/express",
+    "start": "node server",
     "battleList": "node scripts/battleList",
     "telegram": "node scripts/telegram",
     "test": "npx eslint ."

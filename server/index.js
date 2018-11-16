@@ -7,8 +7,8 @@ const bodyParser = require('body-parser')
 const app = express()
 
 // Firebase & Battlemap
-const { credentials, expressPort, debug } = require('../../config')
-const Battlemap = require('../../libs/battlemap')
+const { credentials, expressPort, debug } = require('../config')
+const Battlemap = require('../libs/battlemap')
 
 // GraphQL
 const { graphqlExpress, graphiqlExpress } = require('apollo-server-express')
@@ -34,7 +34,7 @@ app.use(function(error, req, res, next) {
 app.get('/getScreen', (req, res) => {
   if (debug) console.log('REQUEST: getScreen')
   return bm.screenshot('.tmp/screen.png')
-    .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../../.tmp') }))
+    .then(() => res.sendFile('screen.png', { root: path.join(__dirname, '../.tmp') }))
     .catch(err => res.status(err.code || 500).json({error: err.message}))
 })
 
@@ -42,13 +42,6 @@ app.post('/getRequest', (req, res) => {
   if (!req.body.operation) return res.status(400).json({error: 'Opperation is not defined'})
 
   return bm.getApiData('/' + req.body.operation, req.body.query)
-    .then(data => res.json(data))
-    .catch(err => res.status(err.code || 500).json({error: err.message}))
-})
-
-app.post('/reauth', (req, res) => {
-  if (debug) console.log('REQUEST: reauth')
-  return bm.init(credentials)
     .then(data => res.json(data))
     .catch(err => res.status(err.code || 500).json({error: err.message}))
 })
@@ -88,7 +81,7 @@ const resolvers = {
     playerBaseUniqueId: (_, {args}) => bm.getPlayerBaseUniqueId(args)
   },
   Mutation: {
-    reauth: () => bm.reauth(),
+    restart: () => bm.init(),
     sendMessage: (_, args) => bm.sendMessage(args)
   },
   BattleDetail: {
