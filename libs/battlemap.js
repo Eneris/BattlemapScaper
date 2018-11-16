@@ -85,8 +85,6 @@ module.exports = class Battlemap {
     this.restartTimer = setTimeout(() => this.init(), 24 * 60 * 60 * 1000)
 
     if (debug) console.log('Init done')
-
-    return this.page
   }
 
   // Auth section
