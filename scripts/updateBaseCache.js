@@ -7,6 +7,8 @@ const path = require('path')
 const fetch = require('node-fetch')
 const gql = require('graphql-tag')
 
+const {handleLog, handleError} = require('../libs/functions')
+
 const fetchGraphql = ({query, variables}) => fetch('http://deltat.eneris.wtf/graphql', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -111,7 +113,7 @@ const main = async () => {
   await cache.init()
   const lastBaseId = await cache.getLastId('bases')
 
-  console.log('Last base id found in cache', lastBaseId)
+  handleLog('Last base id found in cache', lastBaseId)
 
   let basesList = (await fetchGraphql({
     query: gql`
@@ -126,7 +128,7 @@ const main = async () => {
           name
           owner_id
         }
-      }      
+      }
     `,
     variables: {
       args: {
@@ -139,23 +141,23 @@ const main = async () => {
     }
   })).data.bases
 
-  console.log('Bases found', basesList.length)
+  handleLog('Bases found', basesList.length)
 
   for (let key in basesList) {
     try {
       const base = basesList[key]
-      console.log('Save base cache', base.id)
+      handleLog('Save base cache', base.id)
       await cache.saveBase(base.id, base)
 
-      console.log('Fetching base profile')
+      handleLog('Fetching base profile')
       const baseDetail = await queryBaseDetail(base.id)
       await cache.saveBaseDetail(base.id, baseDetail)
 
-      console.log('Fetching player profile')
+      handleLog('Fetching player profile')
       const player = await queryPlayer(base.owner_id)
       await cache.savePlayer(base.owner_id, player, baseDetail.bs_hsid)
     } catch (err) {
-      console.error(err)
+      handleError(err)
       throw err
     }
   }
@@ -166,8 +168,8 @@ const main = async () => {
 
 main()
   .catch(err => {
-    console.log('Got error')
-    console.error(err)
+    handleLog('Got error')
+    handleError(err)
     return cache.exit()
   })
   .then(() => process.exit())
