@@ -8,7 +8,8 @@ const {
 } = require('../config')
 
 const {
-  delay
+  handleLog,
+  handleError
 } = require('./functions')
 
 const Cache = require('./cache')
@@ -21,7 +22,7 @@ module.exports = class Battlemap {
   }
 
   async exit() {
-    if(this.restartTimer) {
+    if (this.restartTimer) {
       this.restartTimer = clearTimeout(this.restartTimer)
     }
 
@@ -31,7 +32,7 @@ module.exports = class Battlemap {
   }
 
   async init(credentials) {
-    console.log('Init started')
+    handleLog('Init started')
 
     if (!this.cache) {
       this.cache = new Cache()
@@ -65,13 +66,13 @@ module.exports = class Battlemap {
 
     if (debug) {
       if (debug === 'verbose') {
-        this.page.on('request', request => console.log('REQUEST', request.url()))
-        this.page.on('console', msg => console.log('CONSOLE', msg._text))
+        this.page.on('request', request => handleLog('REQUEST', request.url()))
+        this.page.on('console', msg => handleLog('CONSOLE', msg._text))
       }
 
       this.page.on('pageerror', err => {
-        console.log('PAGE Error')
-        console.error(err)
+        handleLog('PAGE Error')
+        handleError(err)
       })
     }
 
@@ -81,26 +82,30 @@ module.exports = class Battlemap {
       await this.login(credentials)
     }
 
-    console.log('Setting up periodic restarter')
+    handleLog('Setting up periodic restarter')
     this.restartTimer = setTimeout(() => this.init(), 24 * 60 * 60 * 1000)
 
-    if (debug) console.log('Init done')
+    if (debug) handleLog('Init done')
   }
 
   // Auth section
   async login(credentials) {
-    console.log('Login started')
+    handleLog('Login started')
+
+    if (!credentials) {
+      throw new Error('No credentials supplied!')
+    }
 
     if (debug) {
       await this.screenshot('.debug/loginHard.png')
     }
 
     if (debug) {
-      console.log('Hard login started')
+      handleLog('Hard login started')
       await this.screenshot('.debug/LoginStageEmail.png')
     }
 
-    console.log('Credentials', credentials)
+    handleLog('Credentials login:', credentials.login)
     await this.page.goto(loginPage)
 
     if (!(await this.isLoginNeeded(3000))) {
@@ -122,7 +127,7 @@ module.exports = class Battlemap {
 
       try {
         await this.page.waitForSelector('#skipChallenge,#challengePickerList', { timeout: 500 })
-        console.error('Waiting for 2Way challenge')
+        handleError('Waiting for 2Way challenge')
         await this.isLoginNeeded(15000) // Waiting 15s for 2Way to complete
       } catch (err) { }
 
@@ -145,10 +150,10 @@ module.exports = class Battlemap {
 
     try {
       await this.page.waitForSelector('#user-auth-id', { timeout })
-      console.log('Login is not needed')
+      handleLog('Login is not needed')
       return false
     } catch (err) {
-      console.log('Login is needed')
+      handleLog('Login is needed')
       return true
     }
   }
@@ -159,7 +164,7 @@ module.exports = class Battlemap {
   }
 
   async getApiData(queryEndpoint, requestData = {}, method = 'post', isRecursion = false) {
-    if (debug === 'verbose') console.log('Getting api data', queryEndpoint, requestData, method, isRecursion)
+    if (debug === 'verbose') handleLog('Getting api data', queryEndpoint, requestData, method, isRecursion)
 
     const result = this.page.evaluate((queryEndpoint, requestData, method) => {
       // This one has silenced errors
@@ -193,7 +198,7 @@ module.exports = class Battlemap {
       }
     }, queryEndpoint, requestData, method)
       .then(data => {
-        if (debug === 'verbose') console.log('Got response', data)
+        if (debug === 'verbose') handleLog('Got response', data)
         if (data.state !== 'success' || data.response.status !== 200) {
           const error = new Error(data.response.responseJSON || data.response.statusText)
           error.code = data.response.status
@@ -207,8 +212,8 @@ module.exports = class Battlemap {
           try {
             return JSON.parse(data)
           } catch (err) {
-            console.error('Failed to parse JSON')
-            console.log(data)
+            handleError('Failed to parse JSON')
+            handleLog(data)
             return data
           }
         }
@@ -216,7 +221,7 @@ module.exports = class Battlemap {
         return data
       })
       .catch(async err => {
-        console.error(err)
+        handleError(err)
         if (!err.code) throw err
 
         let newError
@@ -224,22 +229,22 @@ module.exports = class Battlemap {
         switch (err.code) {
           case 401:
           case 419:
-            console.log('Got unauthorized')
+            handleLog('Got unauthorized')
             if (isRecursion) break
-            console.log('Doing reauth on fly')
+            handleLog('Doing reauth on fly')
             await this.login(this.credentials)
             return this.getApiData(queryEndpoint, requestData, method, true)
           // break
 
           case 500:
-            console.error('BattleMap crashed')
+            handleError('BattleMap crashed')
             newError = new Error('BattleMap crashed with error 500')
             newError.code = 500
             throw newError
           // break
 
           case 999: // TODO: Find the way to throw it...
-            console.error('PhantomJS crashed... recovering')
+            handleError('PhantomJS crashed... recovering')
             await this.init(this.credentials)
             newError = new Error('PhantomJS crashed... Probably from some syntax error')
             newError.code = 500
@@ -257,7 +262,7 @@ module.exports = class Battlemap {
   }
 
   async screenshot(fileName, options = {}) {
-    if (debug === 'verbose') console.log('getting screenshot')
+    if (debug === 'verbose') handleLog('getting screenshot')
     return this.page.screenshot({ path: fileName, ...options })
   }
 
@@ -378,7 +383,7 @@ module.exports = class Battlemap {
     } else {
       const battles = await this.getBattles({})
       const battle = battles.find(item => item.id === id)
-      console.log('Found', battles.map(item => item.id), battle)
+      handleLog('Found', battles.map(item => item.id), battle)
       if (!battle) {
         throw new Error('Battle not found or is already finished')
       } else if (battle.finished) {

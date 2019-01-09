@@ -2,6 +2,7 @@
 // const database = firebase.database()
 const config = require('../config').mongoDb
 const MongoClient = require('mongodb').MongoClient
+const {handleLog} = require('./functions')
 
 module.exports = class BattleMapCache {
   constructor(props) {
@@ -14,11 +15,12 @@ module.exports = class BattleMapCache {
   }
 
   async init() {
+    handleLog('DB connect init')
     /* this.mongoClient: MongoClient */
     const authString = `mongodb://${config.user}:${config.password}@${config.url}:${config.port}/?authSource=deltat`
     this.mongoClient = await MongoClient.connect(authString)
     this.db = this.mongoClient.db('deltat')
-    console.log('DB connect done')
+    handleLog('DB connect done')
   }
 
   saveBase(id, base) {
@@ -106,7 +108,7 @@ module.exports = class BattleMapCache {
   }
 
   async exit() {
-    console.log('Closing DB...')
+    handleLog('Closing DB...')
     if (this.mongoClient) return this.mongoClient.close()
   }
 

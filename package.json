@@ -16,6 +16,7 @@
   },
   "author": "Eneris<eneris.cz@gmail.com>",
   "dependencies": {
+    "@sentry/node": "^4.4.2",
     "apollo-server-express": "^1.3.6",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
