@@ -1,6 +1,6 @@
 {
   "name": "battlemap-scraper",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Delta T - Battlemap scraper",
   "repository": "github:Eneris/BattlemapScaper",
   "main": "scripts/express.js",
