@@ -6,7 +6,7 @@ const {
   debug,
   sentryUrl
 } = require('../config')
-const packageJson = require('../package.json');
+const packageJson = require('../package.json')
 
 // Express
 const express = require('express')
@@ -128,7 +128,7 @@ app.use('/graphql', bodyParser.json(), graphqlExpress({ schema }))
 app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
 
 // Main inicialization
-const main = (async () => {
+const main = (async () => { // eslint-disable-line
   await bm.init(credentials)
   app.listen(expressPort, () => handleLog('Listening on port', expressPort))
 })()
